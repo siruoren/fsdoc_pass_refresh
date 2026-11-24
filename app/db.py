@@ -53,6 +53,10 @@ def init_db():
                 updated_at TEXT
             )"""
         )
+        # 旧库升级：entries 表补充 message 列
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(entries)")]
+        if "message" not in cols:
+            conn.execute("ALTER TABLE entries ADD COLUMN message TEXT")
 
 
 # ---------- 认证信息 ----------
@@ -128,6 +132,11 @@ def update_entry_cron(entry_id, cron):
 def update_entry_title(entry_id, title):
     with _lock, _connect() as conn:
         conn.execute("UPDATE entries SET title = ? WHERE id = ?", (title, entry_id))
+
+
+def update_entry_message(entry_id, message):
+    with _lock, _connect() as conn:
+        conn.execute("UPDATE entries SET message = ? WHERE id = ?", (message, entry_id))
 
 
 def delete_entry(entry_id):

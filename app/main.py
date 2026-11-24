@@ -37,16 +37,32 @@ FAVICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 async def page_auth_middleware(request: Request, call_next):
     """页面访问密码认证：未认证时 API 返回 401，由前端展示登录界面。
 
-    对外密码查询接口 /api/password/{id} 免认证，供程序直接调用。
+    API 支持两种认证方式：
+    - Cookie（浏览器登录后自动携带）
+    - Authorization: Bearer <访问密码或登录token> 请求头，供外部程序调用
     """
     path = request.url.path
-    if path not in PUBLIC_PATHS and path != "/" and not path.startswith("/api/password/"):
-        token = request.cookies.get(pageauth.SESSION_COOKIE)
-        if not pageauth.verify_token(token):
+    if path not in PUBLIC_PATHS and path != "/":
+        if not _authorized(request):
             if path.startswith("/api/"):
                 return JSONResponse({"detail": "未认证，请先登录"}, status_code=401)
             return PlainTextResponse("Not Found", status_code=404)
     return await call_next(request)
+
+
+def _authorized(request: Request) -> bool:
+    token = request.cookies.get(pageauth.SESSION_COOKIE)
+    if pageauth.verify_token(token):
+        return True
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        value = auth[7:].strip()
+        # 优先按访问密码认证（API 场景）
+        if value and pageauth.verify_page_password(value):
+            return True
+        # 兼容登录接口返回的 token
+        return pageauth.verify_token(value)
+    return False
 
 
 # ---------- 模型 ----------
@@ -64,6 +80,10 @@ class EntryIn(BaseModel):
 
 class CronIn(BaseModel):
     cron: Optional[str] = None
+
+
+class MessageIn(BaseModel):
+    message: Optional[str] = None  # 用户手动输入的备注，随密码接口返回
 
 
 class BatchIn(BaseModel):
@@ -97,9 +117,10 @@ class LoginIn(BaseModel):
 def login(body: LoginIn):
     if not pageauth.verify_page_password(body.password):
         raise HTTPException(401, "访问密码错误")
-    resp = JSONResponse({"ok": True})
+    token = pageauth.make_token()
+    resp = JSONResponse({"ok": True, "token": token})
     resp.set_cookie(
-        pageauth.SESSION_COOKIE, pageauth.make_token(),
+        pageauth.SESSION_COOKIE, token,
         max_age=pageauth.SESSION_TTL, httponly=True, samesite="lax", path="/",
     )
     return resp
@@ -119,9 +140,10 @@ def change_password(body: ChangePwdIn):
     if len(new_pwd) < 6:
         raise HTTPException(400, "新密码至少 6 位")
     pageauth.set_page_password(new_pwd)
-    resp = JSONResponse({"ok": True})
+    token = pageauth.make_token()
+    resp = JSONResponse({"ok": True, "token": token})
     resp.set_cookie(
-        pageauth.SESSION_COOKIE, pageauth.make_token(),
+        pageauth.SESSION_COOKIE, token,
         max_age=pageauth.SESSION_TTL, httponly=True, samesite="lax", path="/",
     )
     return resp
@@ -186,6 +208,15 @@ def update_cron(entry_id: int, body: CronIn):
     return db.get_entry(entry_id)
 
 
+@app.put("/api/entries/{entry_id}/message")
+def update_message(entry_id: int, body: MessageIn):
+    """编辑条目备注（message），随对外密码接口返回。"""
+    if not db.get_entry(entry_id):
+        raise HTTPException(404, "条目不存在")
+    db.update_entry_message(entry_id, (body.message or "").strip() or None)
+    return db.get_entry(entry_id)
+
+
 @app.delete("/api/entries/{entry_id}")
 def delete_entry(entry_id: int):
     if not db.get_entry(entry_id):
@@ -243,6 +274,7 @@ def get_password(entry_id: int):
         "url": entry["url"],
         "status": entry["status"],
         "password": entry["password"],
-        "message": "权限不足" if entry["status"] == service.STATUS_DENIED else (entry["status_msg"] or ""),
+        "message": entry["message"]
+                   or ("权限不足" if entry["status"] == service.STATUS_DENIED else (entry["status_msg"] or "")),
         "last_refresh": entry["last_refresh"],
     }
