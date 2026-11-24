@@ -53,6 +53,13 @@ def init_db():
                 updated_at TEXT
             )"""
         )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS api_auth (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                password_hash TEXT NOT NULL,
+                updated_at TEXT
+            )"""
+        )
         # 旧库升级：entries 表补充 message 列
         cols = [r[1] for r in conn.execute("PRAGMA table_info(entries)")]
         if "message" not in cols:
@@ -103,6 +110,30 @@ def save_page_password(password_hash):
                                             updated_at = excluded.updated_at""",
             (password_hash, _now()),
         )
+
+
+# ---------- API 认证密码 ----------
+
+def get_api_auth():
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM api_auth WHERE id = 1").fetchone()
+        return dict(row) if row else None
+
+
+def save_api_password(password_hash):
+    with _lock, _connect() as conn:
+        conn.execute(
+            """INSERT INTO api_auth (id, password_hash, updated_at)
+               VALUES (1, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET password_hash = excluded.password_hash,
+                                            updated_at = excluded.updated_at""",
+            (password_hash, _now()),
+        )
+
+
+def clear_api_password():
+    with _lock, _connect() as conn:
+        conn.execute("DELETE FROM api_auth WHERE id = 1")
 
 
 # ---------- 条目 ----------

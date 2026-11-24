@@ -57,11 +57,13 @@ def _authorized(request: Request) -> bool:
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         value = auth[7:].strip()
-        # 优先按访问密码认证（API 场景）
-        if value and pageauth.verify_page_password(value):
-            return True
-        # 兼容登录接口返回的 token
-        return pageauth.verify_token(value)
+        if not value:
+            return False
+        # API 认证密码（已设置时优先且独立生效）
+        if pageauth.api_password_configured():
+            return pageauth.verify_api_password(value)
+        # 未设置 API 密码时回退到访问密码，再兼容登录 token
+        return pageauth.verify_page_password(value) or pageauth.verify_token(value)
     return False
 
 
@@ -84,6 +86,10 @@ class CronIn(BaseModel):
 
 class MessageIn(BaseModel):
     message: Optional[str] = None  # 用户手动输入的备注，随密码接口返回
+
+
+class ApiPwdIn(BaseModel):
+    password: Optional[str] = None  # API 认证密码，空表示清除（回退用访问密码认证）
 
 
 class BatchIn(BaseModel):
@@ -215,6 +221,24 @@ def update_message(entry_id: int, body: MessageIn):
         raise HTTPException(404, "条目不存在")
     db.update_entry_message(entry_id, (body.message or "").strip() or None)
     return db.get_entry(entry_id)
+
+
+@app.get("/api/api-password")
+def api_password_status():
+    return {"configured": pageauth.api_password_configured()}
+
+
+@app.put("/api/api-password")
+def set_api_password(body: ApiPwdIn):
+    """设置/清除 API 认证密码（独立于页面访问密码，存库）。"""
+    pwd = (body.password or "").strip()
+    if not pwd:
+        pageauth.clear_api_password()
+        return {"ok": True, "configured": False}
+    if len(pwd) < 6:
+        raise HTTPException(400, "API 认证密码至少 6 位")
+    pageauth.set_api_password(pwd)
+    return {"ok": True, "configured": True}
 
 
 @app.delete("/api/entries/{entry_id}")

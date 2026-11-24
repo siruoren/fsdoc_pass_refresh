@@ -154,7 +154,12 @@
 
   <!-- 对外 API 说明 -->
   <div class="card">
-    <h2>对外接口（需访问认证）</h2>
+    <h2>对外接口</h2>
+    <div class="row" style="margin-bottom:10px">
+      <input type="password" id="apiPwdInput" placeholder="API 认证密码（至少 6 位，留空清除）" style="flex:0 1 260px">
+      <button class="ghost" onclick="saveApiPwd()">保存</button>
+      <span class="muted" id="apiPwdStatus">加载中...</span>
+    </div>
     <div id="apiHint" style="font-size:12px;color:var(--muted);line-height:1.8">登录后展示请求示例</div>
   </div>
 </div>
@@ -198,10 +203,7 @@ function toast(msg) {
 }
 
 async function req(url, opts) {
-  const headers = {...(opts && opts.headers)};
-  const pwd = localStorage.getItem('apiPwd');
-  if (pwd) headers['Authorization'] = 'Bearer ' + pwd;
-  const resp = await fetch(API + url, {...opts, headers});
+  const resp = await fetch(API + url, opts);
   if (resp.status === 401) { showLogin(); throw new Error('未认证，请先登录'); }
   if (!resp.ok) {
     let detail = resp.statusText;
@@ -223,6 +225,7 @@ function showMain() {
   document.getElementById('loginMask').style.display = 'none';
   document.getElementById('container').style.display = 'block';
   renderApiHint();
+  loadApiPwdStatus();
   loadAuth();
   loadEntries();
 }
@@ -238,16 +241,14 @@ async function login() {
   const pwd = document.getElementById('pagePwd').value;
   if (!pwd) return toast('请输入访问密码');
   try {
-    const s = await req('/api/login', {method:'POST', headers:{'Content-Type':'application/json'},
+    await req('/api/login', {method:'POST', headers:{'Content-Type':'application/json'},
                              body: JSON.stringify({password: pwd})});
-    localStorage.setItem('apiPwd', pwd);
     showMain();
   } catch (e) { toast('密码错误'); }
 }
 
 async function logout() {
   try { await req('/api/logout', {method:'POST'}); } catch (e) {}
-  localStorage.removeItem('apiPwd');
   showLogin();
 }
 
@@ -273,7 +274,6 @@ async function changePwd() {
   try {
     const r = await req('/api/change-password', {method:'POST', headers:{'Content-Type':'application/json'},
                                        body: JSON.stringify({old_password: oldPwd, new_password: n1})});
-    localStorage.setItem('apiPwd', n1);
     toast('密码已修改');
     closePwdModal();
   } catch (e) { toast(e.message); }
@@ -281,18 +281,39 @@ async function changePwd() {
 
 // ---------- 对外接口示例 ----------
 
+async function loadApiPwdStatus() {
+  const s = await req('/api/api-password');
+  const el = document.getElementById('apiPwdStatus');
+  el.textContent = s.configured ? '✓ 已设置，API 使用该密码认证' : '未设置，当前使用访问密码认证';
+}
+
+async function saveApiPwd() {
+  const input = document.getElementById('apiPwdInput');
+  const v = input.value.trim();
+  try {
+    const r = await req('/api/api-password', {method:'PUT', headers:{'Content-Type':'application/json'},
+                                              body: JSON.stringify({password: v || null})});
+    if (v) localStorage.setItem('apiPwdKey', v);
+    else localStorage.removeItem('apiPwdKey');
+    input.value = '';
+    toast(r.configured ? 'API 认证密码已保存' : 'API 认证密码已清除');
+    await loadApiPwdStatus();
+    renderApiHint();
+  } catch (e) { toast('保存失败: ' + e.message); }
+}
+
 function renderApiHint() {
   const box = document.getElementById('apiHint');
   const origin = location.origin;
-  const pwd = localStorage.getItem('apiPwd') || '你的访问密码';
+  const pwd = localStorage.getItem('apiPwdKey') || '你设置的API认证密码';
   box.innerHTML = `
-    <div>请求头携带访问密码即可调用（<code>Authorization: Bearer 访问密码</code>）：</div>
+    <div>请求头携带 API 认证密码即可调用（<code>Authorization: Bearer API认证密码</code>）：</div>
     <pre class="api-code">GET ${origin}/api/password/{条目ID}
 Authorization: Bearer ${pwd}</pre>
     <pre class="api-code">curl ${origin}/api/password/1 \\
   -H "Authorization: Bearer ${pwd}"</pre>
     <div class="muted">返回：{"id":1,"url":"...","status":"正常","password":"q795xx","message":"备注","last_refresh":"..."}；
-    message 优先显示条目「备注」中手动输入的内容，无备注时显示状态提示。修改访问密码后需同步更新请求头；浏览器内已登录时也可直接用 Cookie 访问。</div>`;
+    message 优先显示条目「备注」中手动输入的内容，无备注时显示状态提示。未设置 API 认证密码时，可临时用访问密码认证；浏览器内已登录时也可直接用 Cookie 访问。</div>`;
 }
 
 const statusBadge = s => {

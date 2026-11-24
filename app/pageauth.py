@@ -52,6 +52,37 @@ def set_page_password(plain: str):
     db.save_page_password(f"{salt}${_hash_password(plain, salt)}")
 
 
+# ---------- API 认证密码（独立于页面访问密码，存库） ----------
+
+def get_api_stored_hash() -> str | None:
+    row = db.get_api_auth()
+    return row["password_hash"] if row else None
+
+
+def api_password_configured() -> bool:
+    return get_api_stored_hash() is not None
+
+
+def verify_api_password(plain: str) -> bool:
+    stored = get_api_stored_hash()
+    if stored is None:
+        return False
+    try:
+        salt, digest = stored.split("$", 1)
+    except ValueError:
+        return False
+    return hmac.compare_digest(_hash_password(plain, salt), digest)
+
+
+def set_api_password(plain: str):
+    salt = secrets.token_hex(16)
+    db.save_api_password(f"{salt}${_hash_password(plain, salt)}")
+
+
+def clear_api_password():
+    db.clear_api_password()
+
+
 def _password_fingerprint() -> str:
     """当前密码的指纹，用于会话令牌签名（改密后旧令牌失效）。"""
     stored = get_stored_hash()
