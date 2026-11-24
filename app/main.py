@@ -4,11 +4,11 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel
 
-from . import db, scheduler, service
+from . import db, pageauth, scheduler, service
 from .feishu import FeishuError
 
 
@@ -23,6 +23,30 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="飞书文档密码管理器", lifespan=lifespan)
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+# 无需页面认证的路径（favicon、登录/会话查询接口）
+PUBLIC_PATHS = {"/api/login", "/api/session", "/favicon.ico", "/favicon.svg"}
+
+FAVICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#3370ff"/>
+<path d="M10.9 15.3 7.6 12l1.4-1.4 1.9 1.9 4.1-4.1 1.4 1.4-5.5 5.5z" fill="#fff"/>
+</svg>"""
+
+
+@app.middleware("http")
+async def page_auth_middleware(request: Request, call_next):
+    """页面访问密码认证：未认证时 API 返回 401，由前端展示登录界面。
+
+    对外密码查询接口 /api/password/{id} 免认证，供程序直接调用。
+    """
+    path = request.url.path
+    if path not in PUBLIC_PATHS and path != "/" and not path.startswith("/api/password/"):
+        token = request.cookies.get(pageauth.SESSION_COOKIE)
+        if not pageauth.verify_token(token):
+            if path.startswith("/api/"):
+                return JSONResponse({"detail": "未认证，请先登录"}, status_code=401)
+            return PlainTextResponse("Not Found", status_code=404)
+    return await call_next(request)
 
 
 # ---------- 模型 ----------
@@ -50,6 +74,70 @@ class BatchIn(BaseModel):
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+@app.get("/favicon.svg")
+def favicon():
+    return Response(FAVICON_SVG, media_type="image/svg+xml")
+
+
+@app.get("/favicon.ico")
+def favicon_ico():
+    return Response(FAVICON_SVG, media_type="image/svg+xml")
+
+
+# ---------- 页面访问认证 ----------
+
+class LoginIn(BaseModel):
+    password: str
+
+
+@app.post("/api/login")
+def login(body: LoginIn):
+    if not pageauth.verify_page_password(body.password):
+        raise HTTPException(401, "访问密码错误")
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(
+        pageauth.SESSION_COOKIE, pageauth.make_token(),
+        max_age=pageauth.SESSION_TTL, httponly=True, samesite="lax", path="/",
+    )
+    return resp
+
+
+class ChangePwdIn(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@app.post("/api/change-password")
+def change_password(body: ChangePwdIn):
+    """修改页面访问密码：需验证原密码；改密后旧会话失效，当前设备重签发会话保持登录。"""
+    if not pageauth.verify_page_password(body.old_password):
+        raise HTTPException(400, "原密码错误")
+    new_pwd = body.new_password.strip()
+    if len(new_pwd) < 6:
+        raise HTTPException(400, "新密码至少 6 位")
+    pageauth.set_page_password(new_pwd)
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(
+        pageauth.SESSION_COOKIE, pageauth.make_token(),
+        max_age=pageauth.SESSION_TTL, httponly=True, samesite="lax", path="/",
+    )
+    return resp
+
+
+@app.post("/api/logout")
+def logout():
+    """注销会话：清除认证 Cookie。"""
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(pageauth.SESSION_COOKIE, path="/")
+    return resp
+
+
+@app.get("/api/session")
+def session_status(request: Request):
+    token = request.cookies.get(pageauth.SESSION_COOKIE)
+    return {"authenticated": pageauth.verify_token(token)}
 
 
 # ---------- 认证 ----------

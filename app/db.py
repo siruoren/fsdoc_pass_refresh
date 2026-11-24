@@ -46,6 +46,13 @@ def init_db():
                 created_at TEXT
             )"""
         )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS page_auth (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                password_hash TEXT NOT NULL,
+                updated_at TEXT
+            )"""
+        )
 
 
 # ---------- 认证信息 ----------
@@ -75,6 +82,25 @@ def auth_status():
     return {"configured": True, "app_id": auth["app_id"], "updated_at": auth["updated_at"]}
 
 
+# ---------- 页面访问密码 ----------
+
+def get_page_auth():
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM page_auth WHERE id = 1").fetchone()
+        return dict(row) if row else None
+
+
+def save_page_password(password_hash):
+    with _lock, _connect() as conn:
+        conn.execute(
+            """INSERT INTO page_auth (id, password_hash, updated_at)
+               VALUES (1, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET password_hash = excluded.password_hash,
+                                            updated_at = excluded.updated_at""",
+            (password_hash, _now()),
+        )
+
+
 # ---------- 条目 ----------
 
 def add_entry(url, doc_token, doc_type, title, cron=None):
@@ -90,6 +116,11 @@ def add_entry(url, doc_token, doc_type, title, cron=None):
 def update_entry_cron(entry_id, cron):
     with _lock, _connect() as conn:
         conn.execute("UPDATE entries SET cron = ? WHERE id = ?", (cron, entry_id))
+
+
+def update_entry_title(entry_id, title):
+    with _lock, _connect() as conn:
+        conn.execute("UPDATE entries SET title = ? WHERE id = ?", (title, entry_id))
 
 
 def delete_entry(entry_id):

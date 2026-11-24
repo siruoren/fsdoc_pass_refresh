@@ -8,4 +8,5 @@ services:
       - ./data:/app/data          # SQLite 数据持久化
     environment:
       - TZ=Asia/Shanghai
+      - PAGE_PASSWORD=admin123  # 首次部署的初始密码；页面修改后会存入数据库，之后以库内密码为准，升级不重置
     restart: unless-stopped
