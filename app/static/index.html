@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飞书文档密码管理器</title>
+<style>
+  :root {
+    --primary: #3370ff;
+    --bg: #f2f4f8;
+    --card: #ffffff;
+    --border: #e2e6ee;
+    --text: #1f2329;
+    --muted: #8f959e;
+    --ok: #34c724;
+    --warn: #ff8800;
+    --err: #f54a45;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: var(--bg); color: var(--text); padding: 24px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .card { background: var(--card); border-radius: 10px; padding: 18px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin-bottom: 12px; display: flex;
+             align-items: center; justify-content: space-between; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  input[type=text], input[type=password] {
+    flex: 1; min-width: 180px; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px; outline: none;
+  }
+  input:focus { border-color: var(--primary); }
+  button {
+    padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px;
+    cursor: pointer; background: var(--primary); color: #fff; white-space: nowrap;
+  }
+  button:hover { opacity: .9; }
+  button.ghost { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: #fff; color: var(--err); border: 1px solid var(--border); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .auth-status { font-size: 13px; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; }
+  .auth-ok { background: #e8f5e9; color: var(--ok); }
+  .auth-none { background: #fff3e0; color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left;
+           vertical-align: middle; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  tr:hover td { background: #f8f9fb; }
+  a.doc-link { color: var(--primary); text-decoration: none; word-break: break-all; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px;
+           font-size: 12px; white-space: nowrap; }
+  .badge.ok { background: #e8f5e9; color: var(--ok); }
+  .badge.denied { background: #fdecec; color: var(--err); }
+  .badge.failed { background: #fff3e0; color: var(--warn); }
+  .badge.pending { background: #eef1f6; color: var(--muted); }
+  .pwd { font-family: "SF Mono", Menlo, monospace; font-weight: 600; letter-spacing: 1px; }
+  .pwd-none { color: var(--err); font-weight: 500; }
+  .msg { color: var(--err); font-size: 12px; max-width: 220px; word-break: break-all; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+           background: #1f2329; color: #fff; padding: 10px 18px; border-radius: 8px;
+           font-size: 13px; opacity: 0; transition: opacity .3s; z-index: 99; }
+  .toast.show { opacity: .95; }
+  .actions { display: flex; gap: 6px; }
+  .actions button { padding: 5px 10px; font-size: 12px; }
+  .toolbar { margin-bottom: 10px; }
+  #apiHint { font-size: 12px; color: var(--muted); line-height: 1.8; }
+  code { background: #eef1f6; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>飞书文档密码管理器</h1>
+  <div class="subtitle">添加在线文档链接，一键或定时刷新访问密码；密码可通过 API 按条目 ID 获取</div>
+
+  <!-- 统一认证 -->
+  <div class="card">
+    <h2>统一认证信息 <button class="ghost" id="authToggleBtn" onclick="toggleAuthForm()">修改认证</button></h2>
+    <div id="authStatus" class="auth-status auth-none">未配置认证信息</div>
+    <div id="authForm" class="row" style="display:none">
+      <input type="text" id="appId" placeholder="App ID（cli_xxx）">
+      <input type="password" id="appSecret" placeholder="App Secret">
+      <button onclick="saveAuth()">保存认证</button>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      所有条目的刷新都使用这份认证信息；应用需具备「修改云文档权限设置」等权限，并已通过文档
+      「...」→「...更多」→「添加文档应用」添加为目标文档的文档应用。
+    </div>
+  </div>
+
+  <!-- 新增条目 -->
+  <div class="card">
+    <h2>新增文档条目</h2>
+    <div class="row">
+      <input type="text" id="docUrl" placeholder="文档链接，如 https://xxx.feishu.cn/wiki/xxxx">
+      <input type="text" id="docCron" placeholder="定时刷新 cron（可选，如 0 9 * * *）" style="flex:0 1 240px">
+      <button onclick="addEntry()">添加</button>
+    </div>
+  </div>
+
+  <!-- 条目列表 -->
+  <div class="card">
+    <h2>文档条目</h2>
+    <div class="row toolbar">
+      <button onclick="refreshSelected()">一键刷新所选</button>
+      <button class="ghost" onclick="refreshAll()">刷新全部</button>
+      <button class="danger" onclick="deleteSelected()">删除所选</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="checkAll" onchange="toggleCheckAll()"></th>
+          <th>ID</th>
+          <th>文档</th>
+          <th>类型</th>
+          <th>当前密码</th>
+          <th>状态</th>
+          <th>定时任务</th>
+          <th>最近刷新</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="entryList"></tbody>
+    </table>
+    <div id="emptyTip" class="muted" style="display:none;padding:16px 0;text-align:center">暂无条目，请先添加文档链接</div>
+  </div>
+
+  <!-- 对外 API 说明 -->
+  <div class="card">
+    <h2>对外接口</h2>
+    <div id="apiHint">
+      按条目 ID 获取最新密码：<code>GET /api/password/{条目ID}</code><br>
+      返回：<code>{"id":1,"url":"...","status":"正常","password":"q795xx","message":"","last_refresh":"..."}</code>；
+      无权限文档返回 <code>status: "权限不足"</code>，<code>password: null</code>。
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function req(url, opts) {
+  const resp = await fetch(API + url, opts);
+  if (!resp.ok) {
+    let detail = resp.statusText;
+    try { const j = await resp.json(); detail = j.detail || JSON.stringify(j); } catch (e) {}
+    throw new Error(detail);
+  }
+  return resp.json();
+}
+
+const statusBadge = s => {
+  const map = {'正常':'ok','权限不足':'denied','刷新失败':'failed','未配置认证':'failed','待刷新':'pending'};
+  return `<span class="badge ${map[s]||'pending'}">${s}</span>`;
+};
+
+function passwordCell(e) {
+  if (e.status === '权限不足' || !e.password)
+    return `<span class="pwd-none">—— 权限不足</span>`;
+  return `<span class="pwd" data-pwd="${e.password}">${e.password}</span>`;
+}
+
+function cronCell(e) {
+  const c = e.cron || '';
+  return `<div class="row" style="flex-wrap:nowrap">
+    <input type="text" value="${c}" data-cron="${e.id}" placeholder="未设置"
+           style="min-width:110px;max-width:130px;padding:4px 6px;font-size:12px">
+    <button class="ghost" style="padding:4px 8px;font-size:12px"
+            onclick="saveCron(${e.id})">保存</button>
+  </div>`;
+}
+
+async function loadAuth() {
+  const st = await req('/api/auth');
+  const box = document.getElementById('authStatus');
+  document.getElementById('appId').value = st.app_id || '';
+  if (st.configured) {
+    box.className = 'auth-status auth-ok';
+    box.textContent = `已认证：App ID = ${st.app_id}（更新于 ${st.updated_at}）`;
+    document.getElementById('authToggleBtn').textContent = '修改认证';
+    document.getElementById('authForm').style.display = 'none';
+  } else {
+    box.className = 'auth-status auth-none';
+    box.textContent = '未配置认证信息，请先保存 App ID / App Secret';
+    document.getElementById('authToggleBtn').textContent = '去认证';
+    document.getElementById('authForm').style.display = 'flex';
+  }
+}
+
+function toggleAuthForm() {
+  const f = document.getElementById('authForm');
+  f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+}
+
+async function saveAuth() {
+  const appId = document.getElementById('appId').value.trim();
+  const secret = document.getElementById('appSecret').value.trim();
+  if (!appId || !secret) return toast('请填写 App ID 和 App Secret');
+  await req('/api/auth', {method:'POST', headers:{'Content-Type':'application/json'},
+                          body: JSON.stringify({app_id: appId, app_secret: secret})});
+  toast('认证信息已保存');
+  document.getElementById('appSecret').value = '';
+  await loadAuth(); await loadEntries();
+}
+
+async function loadEntries() {
+  const list = await req('/api/entries');
+  const tbody = document.getElementById('entryList');
+  document.getElementById('emptyTip').style.display = list.length ? 'none' : 'block';
+  tbody.innerHTML = list.map(e => `
+    <tr>
+      <td><input type="checkbox" class="entry-check" value="${e.id}"></td>
+      <td>${e.id}</td>
+      <td><a class="doc-link" href="${e.url}" target="_blank">${e.doc_token}</a></td>
+      <td>${e.doc_type}</td>
+      <td>${passwordCell(e)}</td>
+      <td>${statusBadge(e.status)}${e.status_msg ? `<div class="msg">${e.status_msg}</div>` : ''}</td>
+      <td>${cronCell(e)}</td>
+      <td class="muted">${e.last_refresh || '—'}</td>
+      <td><div class="actions">
+        <button class="ghost" onclick="refreshOne(${e.id})">刷新</button>
+        <button class="danger" onclick="deleteEntry(${e.id})">删除</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+async function addEntry() {
+  const url = document.getElementById('docUrl').value.trim();
+  const cron = document.getElementById('docCron').value.trim();
+  if (!url) return toast('请输入文档链接');
+  try {
+    await req('/api/entries', {method:'POST', headers:{'Content-Type':'application/json'},
+                               body: JSON.stringify({url, cron: cron || null})});
+    document.getElementById('docUrl').value = '';
+    document.getElementById('docCron').value = '';
+    toast('条目已添加');
+    await loadEntries();
+  } catch (e) { toast('添加失败: ' + e.message); }
+}
+
+async function refreshOne(id) {
+  toast('刷新中...');
+  try {
+    const r = await req(`/api/entries/${id}/refresh`, {method:'POST'});
+    toast(`条目 ${id} 刷新结果：${r.status}${r.password ? '，新密码 ' + r.password : ''}`);
+    await loadEntries();
+  } catch (e) { toast('刷新失败: ' + e.message); }
+}
+
+async function refreshSelected() {
+  const ids = [...document.querySelectorAll('.entry-check:checked')].map(c => +c.value);
+  if (!ids.length) return toast('请先勾选条目');
+  toast(`正在刷新 ${ids.length} 个条目...`);
+  try {
+    await req('/api/entries/batch-refresh', {method:'POST', headers:{'Content-Type':'application/json'},
+                                             body: JSON.stringify({ids})});
+    toast('所选条目刷新完成');
+    await loadEntries();
+  } catch (e) { toast('刷新失败: ' + e.message); }
+}
+
+async function refreshAll() {
+  toast('正在刷新全部条目...');
+  try {
+    await req('/api/entries/refresh-all', {method:'POST'});
+    toast('全部条目刷新完成');
+    await loadEntries();
+  } catch (e) { toast('刷新失败: ' + e.message); }
+}
+
+async function saveCron(id) {
+  const input = document.querySelector(`input[data-cron="${id}"]`);
+  try {
+    await req(`/api/entries/${id}/cron`, {method:'PUT', headers:{'Content-Type':'application/json'},
+                                          body: JSON.stringify({cron: input.value.trim() || null})});
+    toast('定时任务已保存');
+    await loadEntries();
+  } catch (e) { toast('保存失败: ' + e.message); }
+}
+
+async function deleteEntry(id) {
+  if (!confirm(`确认删除条目 ${id}？`)) return;
+  await req(`/api/entries/${id}`, {method:'DELETE'});
+  await loadEntries();
+}
+
+async function deleteSelected() {
+  const ids = [...document.querySelectorAll('.entry-check:checked')].map(c => +c.value);
+  if (!ids.length) return toast('请先勾选条目');
+  if (!confirm(`确认删除所选 ${ids.length} 个条目？`)) return;
+  for (const id of ids) await req(`/api/entries/${id}`, {method:'DELETE'});
+  await loadEntries();
+}
+
+function toggleCheckAll() {
+  const checked = document.getElementById('checkAll').checked;
+  document.querySelectorAll('.entry-check').forEach(c => c.checked = checked);
+}
+
+loadAuth();
+loadEntries();
+</script>
+</body>
+</html>
