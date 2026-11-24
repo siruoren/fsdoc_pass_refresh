@@ -3,7 +3,7 @@ services:
     build: .
     container_name: fsdoc_pass_refresh
     ports:
-      - "8000:8000"
+      - "8123:8000"
     volumes:
       - ./data:/app/data          # SQLite 数据持久化
     environment:
