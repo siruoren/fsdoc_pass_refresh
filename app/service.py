@@ -50,7 +50,7 @@ def refresh_entry(entry_id: int) -> dict:
         return {"status": STATUS_FAILED, "password": None, "msg": str(e)}
 
 
-def add_entry(url: str, cron: str = None) -> dict:
+def add_entry(url: str, cron: str = None, entry_id: int = None) -> dict:
     doc_token, doc_type = feishu.parse_doc_url(url)
     if not doc_type:
         raise FeishuError(-1, "无法识别文档类型", "请使用完整的文档链接（/wiki/、/docx/、/sheet/ 等）")
@@ -64,5 +64,6 @@ def add_entry(url: str, cron: str = None) -> dict:
                 title = fetched
         except Exception:
             pass  # 获取标题失败时先以 token 占位，刷新成功后会再次尝试
-    entry_id = db.add_entry(url.strip(), doc_token, doc_type, title, (cron or "").strip() or None)
+    entry_id = db.add_entry(url.strip(), doc_token, doc_type, title,
+                            (cron or "").strip() or None, entry_id)
     return db.get_entry(entry_id)

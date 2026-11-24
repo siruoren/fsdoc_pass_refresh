@@ -59,6 +59,7 @@ class AuthIn(BaseModel):
 class EntryIn(BaseModel):
     url: str
     cron: Optional[str] = None  # 5 字段 cron 表达式，如 "0 9 * * *"，留空则不定时
+    id: Optional[int] = None    # 手动指定条目 ID，留空自增；已存在则报错不保存
 
 
 class CronIn(BaseModel):
@@ -164,8 +165,10 @@ def list_entries():
 def add_entry(body: EntryIn):
     if body.cron and not scheduler.validate_cron(body.cron):
         raise HTTPException(400, "cron 表达式不合法，应为 5 字段，如 0 9 * * *")
+    if body.id is not None and db.get_entry(body.id):
+        raise HTTPException(400, f"ID {body.id} 已存在，请更换条目 ID")
     try:
-        entry = service.add_entry(body.url, body.cron)
+        entry = service.add_entry(body.url, body.cron, body.id)
     except FeishuError as e:
         raise HTTPException(400, f"{e.msg} {e.hint}".strip())
     scheduler.schedule_entry(entry)

@@ -114,6 +114,7 @@
   <div class="card">
     <h2>新增文档条目</h2>
     <div class="row">
+      <input type="text" id="docId" placeholder="条目 ID（可选，留空自增）" style="flex:0 1 140px">
       <input type="text" id="docUrl" placeholder="文档链接，如 https://xxx.feishu.cn/wiki/xxxx">
       <input type="text" id="docCron" placeholder="定时刷新 cron（可选，如 0 9 * * *）" style="flex:0 1 240px">
       <button onclick="addEntry()">添加</button>
@@ -349,12 +350,16 @@ async function loadEntries() {
 async function addEntry() {
   const url = document.getElementById('docUrl').value.trim();
   const cron = document.getElementById('docCron').value.trim();
+  const idRaw = document.getElementById('docId').value.trim();
+  const id = idRaw ? parseInt(idRaw, 10) : null;
   if (!url) return toast('请输入文档链接');
+  if (idRaw && (!Number.isInteger(id) || id <= 0)) return toast('条目 ID 须为正整数');
   try {
     await req('/api/entries', {method:'POST', headers:{'Content-Type':'application/json'},
-                               body: JSON.stringify({url, cron: cron || null})});
+                               body: JSON.stringify({url, cron: cron || null, id})});
     document.getElementById('docUrl').value = '';
     document.getElementById('docCron').value = '';
+    document.getElementById('docId').value = '';
     toast('条目已添加');
     await loadEntries();
   } catch (e) { toast('添加失败: ' + e.message); }
