@@ -31,7 +31,7 @@ def refresh_entry(entry_id: int) -> dict:
         title = feishu.get_doc_title(entry["doc_token"], entry["doc_type"], access_token)
         if title:
             db.update_entry_title(entry_id, title)
-        notice = feishu.check_or_fix_link_share(entry["doc_token"], entry["doc_type"], access_token)
+        notice = feishu.ensure_link_share_anyone(entry["doc_token"], entry["doc_type"], access_token)
         password = feishu.rotate_password(entry["doc_token"], entry["doc_type"], access_token)
         db.save_refresh_result(entry_id, password, STATUS_OK, notice or "")
         return {"status": STATUS_OK, "password": password, "msg": notice or ""}

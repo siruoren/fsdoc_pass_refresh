@@ -57,6 +57,8 @@ def _handle(resp):
         hint = ""
         if code == 1063002:
             hint = "应用不是该文档的协作者/权限不足，请在文档页面「...」->「...更多」->「添加文档应用」中为应用授权"
+        elif code == 99991672:
+            hint = "应用未开通所需权限，请点击报错信息中的链接开通任一权限（如 docs:permission.setting:read、drive:drive:readonly）并发布版本"
         raise FeishuError(code, msg, hint)
     return result
 
@@ -134,13 +136,24 @@ def rotate_password(token, doc_type, access_token) -> str:
         return refresh_password(token, doc_type, access_token)
 
 
-def check_or_fix_link_share(token, doc_type, access_token):
-    """检查链接分享设置，未对互联网开放则自动设置为可阅读。返回提示信息或 None。"""
-    link_share = get_link_share(token, doc_type, access_token)
-    if link_share.startswith("anyone"):
-        return None
-    set_link_share_readable(token, doc_type, access_token)
-    return f"链接分享原为「{link_share or '未开启'}」，已自动设置为互联网可阅读"
+def ensure_link_share_anyone(token, doc_type, access_token):
+    """尽力确保链接分享对互联网开放，仅用写权限也可工作。
+
+    - 能读取时：未开放则设置为可阅读，返回提示
+    - 读取失败（无 read 权限）：直接尝试设置为可阅读（写权限即可），失败则忽略
+    """
+    link_share = ""
+    try:
+        link_share = get_link_share(token, doc_type, access_token)
+        if link_share.startswith("anyone"):
+            return None
+    except FeishuError:
+        pass  # 无读取权限，跳过检查直接尝试设置
+    try:
+        set_link_share_readable(token, doc_type, access_token)
+        return f"链接分享原为「{link_share or '未开启/未知'}」，已设置为互联网可阅读"
+    except FeishuError:
+        return None  # 无法读写分享设置，交由刷新密码步骤报错
 
 
 def get_doc_title(token, doc_type, access_token):
