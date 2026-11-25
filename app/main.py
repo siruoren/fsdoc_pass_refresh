@@ -25,7 +25,7 @@ app = FastAPI(title="飞书文档密码管理器", lifespan=lifespan)
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 # 无需页面认证的路径（favicon、登录/会话查询接口）
-PUBLIC_PATHS = {"/api/login", "/api/session", "/favicon.ico", "/favicon.svg"}
+PUBLIC_PATHS = {"/api/login", "/api/session", "/favicon.ico", "/favicon.svg", "/api/api-verify"}
 
 FAVICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 <path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#3370ff"/>
@@ -44,6 +44,12 @@ async def page_auth_middleware(request: Request, call_next):
     path = request.url.path
     if path not in PUBLIC_PATHS and path != "/":
         if not _authorized(request):
+            if path.startswith("/api/password/"):
+                # 浏览器直接访问密码接口：返回内嵌认证页；其他客户端（curl 等）返回 401 JSON
+                accept = request.headers.get("accept", "")
+                if "text/html" in accept:
+                    return FileResponse(os.path.join(STATIC_DIR, "api_auth.html"), status_code=401)
+                return JSONResponse({"detail": "未认证，请先登录"}, status_code=401)
             if path.startswith("/api/"):
                 return JSONResponse({"detail": "未认证，请先登录"}, status_code=401)
             return PlainTextResponse("Not Found", status_code=404)
@@ -53,6 +59,11 @@ async def page_auth_middleware(request: Request, call_next):
 def _authorized(request: Request) -> bool:
     token = request.cookies.get(pageauth.SESSION_COOKIE)
     if pageauth.verify_token(token):
+        return True
+    path = request.url.path
+    # API 会话 Cookie：仅对密码查询接口生效（浏览器认证页签发）
+    api_cookie = request.cookies.get(pageauth.API_COOKIE)
+    if api_cookie and path.startswith("/api/password/") and pageauth.verify_api_token(api_cookie):
         return True
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
@@ -167,6 +178,23 @@ def logout():
 def session_status(request: Request):
     token = request.cookies.get(pageauth.SESSION_COOKIE)
     return {"authenticated": pageauth.verify_token(token)}
+
+
+@app.post("/api/api-verify")
+def api_verify(body: LoginIn):
+    """浏览器访问密码接口的认证页：校验 API 认证密码（未设置时回退访问密码），
+    成功后签发仅对密码接口生效的 API 会话 Cookie。"""
+    ok = (pageauth.verify_api_password(body.password)
+          if pageauth.api_password_configured()
+          else pageauth.verify_page_password(body.password))
+    if not ok:
+        raise HTTPException(401, "密码错误")
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(
+        pageauth.API_COOKIE, pageauth.make_api_token(),
+        max_age=pageauth.SESSION_TTL, httponly=True, samesite="lax", path="/",
+    )
+    return resp
 
 
 # ---------- 认证 ----------

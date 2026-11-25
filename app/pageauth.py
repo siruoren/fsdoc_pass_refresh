@@ -119,3 +119,33 @@ def verify_token(token: str) -> bool:
         return int(exp) > time.time()
     except ValueError:
         return False
+
+
+# ---------- 浏览器访问密码接口的 API 会话 Cookie ----------
+
+API_COOKIE = "fsdoc_api"
+
+
+def _api_fingerprint() -> str:
+    """API 会话令牌指纹：优先绑定 API 认证密码，未设置时回退访问密码。"""
+    stored = get_api_stored_hash()
+    if stored:
+        return stored
+    return _password_fingerprint()
+
+
+def make_api_token() -> str:
+    exp = str(int(time.time()) + SESSION_TTL)
+    return f"{exp}.{_sign(f'api.{exp}.{_api_fingerprint()}')}"
+
+
+def verify_api_token(token: str) -> bool:
+    if not token or "." not in token:
+        return False
+    exp, sig = token.split(".", 1)
+    if not hmac.compare_digest(sig, _sign(f"api.{exp}.{_api_fingerprint()}")):
+        return False
+    try:
+        return int(exp) > time.time()
+    except ValueError:
+        return False

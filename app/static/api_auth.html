@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>API 访问认证</title>
+<style>
+  :root {
+    --primary: #3370ff; --primary-dark: #2653d9; --primary-soft: #eaf1ff;
+    --border: #e5e9f2; --text: #1c2333; --muted: #8a93a6;
+    --err: #e5484d; --err-bg: #fdecec;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: linear-gradient(180deg, #e9eef8 0%, #f4f6fa 260px); color: var(--text);
+         min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .box { background: #fff; border: 1px solid var(--border); border-radius: 18px;
+         box-shadow: 0 12px 40px rgba(16,24,40,.18); width: min(360px, 100%); padding: 30px 26px; }
+  .box h2 { display: flex; align-items: center; gap: 8px; font-size: 17px; margin-bottom: 6px;
+            justify-content: center; }
+  .sub { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 18px; }
+  input { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px;
+          font-size: 16px; outline: none; margin-bottom: 12px; background: #fbfcfe; }
+  input:focus { border-color: var(--primary); background: #fff;
+                box-shadow: 0 0 0 3px rgba(51,112,255,.12); }
+  button { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 14px;
+           font-weight: 500; cursor: pointer; background: var(--primary); color: #fff; }
+  button:hover { background: var(--primary-dark); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .tip { font-size: 13px; text-align: center; margin-top: 12px; color: var(--muted); }
+  .tip.err { color: var(--err); background: var(--err-bg); padding: 10px 12px; border-radius: 8px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#3370ff"/><path d="M10.9 15.3 7.6 12l1.4-1.4 1.9 1.9 4.1-4.1 1.4 1.4-5.5 5.5z" fill="#fff"/></svg>
+    API 访问认证
+  </h2>
+  <div class="sub" id="tipNormal">请输入 API 认证密码，认证后 30 天内免重复输入</div>
+  <input type="password" id="apiPwd" placeholder="API 认证密码" autofocus
+         onkeydown="if(event.key==='Enter')tryAuth()">
+  <button id="btn" onclick="tryAuth()">认证</button>
+  <div class="tip hidden" id="tipErr"></div>
+</div>
+<script>
+const MAX_TRIES = 3;
+let tries = 0;
+
+function fail(msg) {
+  document.getElementById('tipErr').textContent = msg;
+  document.getElementById('tipErr').classList.remove('hidden');
+  document.getElementById('tipNormal').classList.add('hidden');
+}
+
+async function tryAuth() {
+  if (tries >= MAX_TRIES) return;
+  const input = document.getElementById('apiPwd');
+  const pwd = input.value;
+  if (!pwd) return fail('请输入 API 认证密码');
+  try {
+    const r = await fetch('/api/api-verify', {method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({password: pwd})});
+    if (r.ok) { location.reload(); return; }
+    tries++;
+    if (tries >= MAX_TRIES) {
+      input.disabled = true;
+      document.getElementById('btn').disabled = true;
+      fail('错误次数已达上限，没有权限或没有认证');
+    } else {
+      fail('密码错误，还可尝试 ' + (MAX_TRIES - tries) + ' 次');
+      input.value = '';
+      input.focus();
+    }
+  } catch (e) {
+    fail('网络异常，请稍后重试');
+  }
+}
+</script>
+</body>
+</html>
