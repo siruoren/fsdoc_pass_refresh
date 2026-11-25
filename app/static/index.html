@@ -90,13 +90,14 @@
   .auth-ok { background: var(--ok-bg); color: var(--ok); }
   .auth-none { background: var(--warn-bg); color: var(--warn); }
   .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: left;
-           vertical-align: middle; }
+  table { width: 100%; min-width: 660px; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 9px 7px; border-bottom: 1px solid var(--border); text-align: left;
+           vertical-align: middle; white-space: nowrap; }
   th { color: var(--muted); font-weight: 500; font-size: 12px; white-space: nowrap; }
+  td.cell-msg { white-space: normal; min-width: 120px; max-width: 220px; }
   tbody tr { transition: background .1s; }
   tbody tr:hover td { background: #f7f9fd; }
-  a.doc-link { color: var(--primary); text-decoration: none; font-weight: 500; word-break: break-all; }
+  a.doc-link { color: var(--primary); text-decoration: none; font-weight: 500; white-space: nowrap; }
   a.doc-link:hover { text-decoration: underline; }
   .badge { display: inline-block; padding: 3px 10px; border-radius: 99px;
            font-size: 12px; white-space: nowrap; font-weight: 500; }
@@ -106,7 +107,7 @@
   .badge.pending { background: #eef1f6; color: var(--muted); }
   .pwd { font-family: "SF Mono", Menlo, Consolas, monospace; font-weight: 600;
          letter-spacing: 1px; background: var(--primary-soft); color: var(--primary-dark);
-         padding: 3px 10px; border-radius: 7px; }
+         padding: 3px 10px; border-radius: 7px; white-space: nowrap; }
   .pwd-none { color: var(--err); font-weight: 500; }
   .muted { color: var(--muted); font-size: 12px; }
   .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-8px);
@@ -157,7 +158,8 @@
                border-radius: 12px; padding: 4px 12px; margin-bottom: 10px; }
     tbody tr:hover td { background: transparent; }
     td { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-         border-bottom: 1px dashed var(--border); padding: 9px 2px; text-align: right; }
+         border-bottom: 1px dashed var(--border); padding: 9px 2px; text-align: right;
+         white-space: normal; }
     td:last-child { border-bottom: none; }
     td::before { content: attr(data-label); color: var(--muted); font-size: 12px;
                  font-weight: 500; flex: 0 0 auto; text-align: left; }
@@ -563,7 +565,7 @@ async function loadEntries() {
       <td data-label="类型">${e.doc_type}</td>
       <td data-label="当前密码">${passwordCell(e)}</td>
       <td data-label="状态">${statusBadge(e.status, e.status_msg)}</td>
-      <td data-label="备注">${messageCell(e)}</td>
+      <td data-label="备注" class="cell-msg">${messageCell(e)}</td>
       <td data-label="定时任务">${cronCell(e)}</td>
       <td data-label="最近刷新" class="muted">${e.last_refresh || '—'}</td>
       <td data-label="操作"><div class="actions">
