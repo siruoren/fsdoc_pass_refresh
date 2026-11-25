@@ -29,7 +29,8 @@ def refresh_entry(entry_id: int) -> dict:
         access_token = feishu.get_tenant_access_token(auth["app_id"], auth["app_secret"])
         notice = feishu.ensure_link_share_anyone(entry["doc_token"], entry["doc_type"], access_token)
         password = feishu.rotate_password(entry["doc_token"], entry["doc_type"], access_token)
-        db.save_refresh_result(entry_id, password, STATUS_OK, notice or "")
+        # 状态正常时不显示链接分享提示等附加信息，仅异常状态展示对应消息
+        db.save_refresh_result(entry_id, password, STATUS_OK, "")
         return {"status": STATUS_OK, "password": password, "msg": notice or ""}
     except FeishuError as e:
         if e.code == 1063002:

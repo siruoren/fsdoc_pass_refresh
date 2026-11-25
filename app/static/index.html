@@ -475,7 +475,7 @@ async function loadEntries() {
       <td data-label="文档"><a class="doc-link" href="${e.url}" target="_blank" title="${e.doc_token}">...${(e.doc_token || '').slice(-6)}</a></td>
       <td data-label="类型">${e.doc_type}</td>
       <td data-label="当前密码">${passwordCell(e)}</td>
-      <td data-label="状态">${statusBadge(e.status)}${e.status_msg ? `<div class="msg">${e.status_msg}</div>` : ''}</td>
+      <td data-label="状态">${statusBadge(e.status)}${e.status !== '正常' && e.status_msg ? `<div class="msg">${e.status_msg}</div>` : ''}</td>
       <td data-label="备注">${messageCell(e)}</td>
       <td data-label="定时任务">${cronCell(e)}</td>
       <td data-label="最近刷新" class="muted">${e.last_refresh || '—'}</td>
