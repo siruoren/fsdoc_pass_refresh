@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>飞书文档密码管理器</title>
+<style>
+  :root {
+    --primary: #3370ff;
+    --primary-dark: #2653d9;
+    --primary-soft: #eaf1ff;
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --border: #e5e9f2;
+    --text: #1c2333;
+    --muted: #8a93a6;
+    --ok: #1e9e55; --ok-bg: #e6f7ed;
+    --warn: #d97a00; --warn-bg: #fff4e5;
+    --err: #e5484d; --err-bg: #fdecec;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 12px rgba(16,24,40,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #e9eef8 0%, var(--bg) 260px);
+    color: var(--text); min-height: 100vh;
+  }
+  .sidebar { position: fixed; inset: 0 auto 0 0; width: 212px; background: var(--card);
+             border-right: 1px solid var(--border); display: flex; flex-direction: column;
+             padding: 20px 12px 16px; z-index: 100; transition: width .2s ease; }
+  .side-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 20px; overflow: hidden; white-space: nowrap; }
+  .side-logo .logo { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+                     background: linear-gradient(135deg, #4d8bff, #2653d9); display: flex;
+                     align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(51,112,255,.35); }
+  .side-title { font-weight: 700; font-size: 14px; line-height: 1.3; }
+  .side-title small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px;
+              color: var(--text); font-size: 14px; cursor: pointer; text-decoration: none;
+              white-space: nowrap; overflow: hidden; transition: background .15s, color .15s; }
+  .nav-item:hover { background: #f2f5fa; }
+  .nav-item.active { background: var(--primary-soft); color: var(--primary-dark); font-weight: 600; }
+  .nav-item svg { flex: 0 0 auto; }
+  .side-foot { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .side-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px;
+              background: none; border: none; color: var(--text); font-size: 13px; font-weight: 500;
+              box-shadow: none; cursor: pointer; white-space: nowrap; overflow: hidden; }
+  .side-btn:hover { background: #f2f5fa; }
+  .side-btn svg { flex: 0 0 auto; }
+  .content { margin-left: 212px; padding: 28px 28px 16px; min-height: 100vh;
+             display: flex; flex-direction: column; }
+  .content-inner { flex: 1; max-width: 960px; width: 100%; }
+  .about { margin-top: 24px; padding: 16px 4px 4px; border-top: 1px solid var(--border);
+           color: var(--muted); font-size: 12px; display: flex; align-items: center;
+           justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .about .dot { color: #c8cfdb; }
+  .about a { color: var(--muted); text-decoration: none; display: inline-flex;
+             align-items: center; gap: 5px; font-weight: 500; }
+  .about a:hover { color: var(--primary); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex;
+             align-items: center; justify-content: space-between; gap: 8px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  input[type=text], input[type=password] {
+    flex: 1; min-width: 150px; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; outline: none; background: #fbfcfe;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input::placeholder { color: #b3bac8; }
+  input:focus { border-color: var(--primary); background: #fff;
+                box-shadow: 0 0 0 3px rgba(51,112,255,.12); }
+  button {
+    padding: 9px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; background: var(--primary); color: #fff; white-space: nowrap;
+    transition: background .15s, transform .05s, box-shadow .15s;
+    box-shadow: 0 2px 5px rgba(51,112,255,.25);
+  }
+  button:hover { background: var(--primary-dark); }
+  button:active { transform: scale(.97); }
+  button.ghost { background: #fff; color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+  button.ghost:hover { background: #f4f6fa; border-color: #ccd4e0; }
+  button.danger { background: #fff; color: var(--err); border: 1px solid #f3c4c6; box-shadow: none; }
+  button.danger:hover { background: var(--err-bg); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .auth-status { font-size: 13px; padding: 10px 14px; border-radius: 10px; margin-bottom: 10px; }
+  .auth-ok { background: var(--ok-bg); color: var(--ok); }
+  .auth-none { background: var(--warn-bg); color: var(--warn); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: left;
+           vertical-align: middle; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; white-space: nowrap; }
+  tbody tr { transition: background .1s; }
+  tbody tr:hover td { background: #f7f9fd; }
+  a.doc-link { color: var(--primary); text-decoration: none; font-weight: 500; word-break: break-all; }
+  a.doc-link:hover { text-decoration: underline; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 99px;
+           font-size: 12px; white-space: nowrap; font-weight: 500; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.denied { background: var(--err-bg); color: var(--err); }
+  .badge.failed { background: var(--warn-bg); color: var(--warn); }
+  .badge.pending { background: #eef1f6; color: var(--muted); }
+  .pwd { font-family: "SF Mono", Menlo, Consolas, monospace; font-weight: 600;
+         letter-spacing: 1px; background: var(--primary-soft); color: var(--primary-dark);
+         padding: 3px 10px; border-radius: 7px; }
+  .pwd-none { color: var(--err); font-weight: 500; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-8px);
+           background: rgba(28,35,51,.92); color: #fff; padding: 11px 20px; border-radius: 10px;
+           font-size: 13px; opacity: 0; transition: opacity .25s, transform .25s;
+           z-index: 999; max-width: 88vw; word-break: break-all; backdrop-filter: blur(6px); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .actions { display: flex; gap: 6px; }
+  .actions button { padding: 6px 12px; font-size: 12px; box-shadow: none; }
+  .cell-inline { display: flex; align-items: center; justify-content: space-between;
+                 gap: 8px; flex-wrap: nowrap; min-width: 90px; }
+  .toolbar { margin-bottom: 12px; }
+  #apiHint { font-size: 12px; color: var(--muted); line-height: 1.8; }
+  pre.api-code { background: #f2f5fa; border: 1px solid var(--border); padding: 10px 12px;
+                 border-radius: 8px; font-size: 12px; overflow-x: auto; line-height: 1.7;
+                 margin: 6px 0 10px; white-space: pre-wrap; word-break: break-all; }
+  code { background: #f2f5fa; padding: 2px 7px; border-radius: 5px; font-size: 12px; }
+  .login-mask { position: fixed; inset: 0; background: rgba(233,238,248,.75);
+                display: flex; align-items: center; justify-content: center; z-index: 1000;
+                padding: 16px; backdrop-filter: blur(4px); }
+  .login-box { background: var(--card); padding: 30px 26px; border-radius: 18px;
+               box-shadow: 0 12px 40px rgba(16,24,40,.18); width: min(360px, 100%);
+               border: 1px solid var(--border); }
+  .login-box h2 { display: flex; align-items: center; gap: 8px; font-size: 17px;
+                  margin-bottom: 6px; justify-content: center; }
+  .login-box .sub { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 18px; }
+  .login-box input { width: 100%; flex: none; margin-bottom: 12px; }
+  .login-box button { width: 100%; padding: 11px; }
+
+  /* ---------- 侧边栏自动收起（页面较窄时仅显示图标） ---------- */
+  @media (max-width: 900px) {
+    .sidebar { width: 64px; padding: 16px 8px 14px; }
+    .side-logo { justify-content: center; padding: 0 0 16px; }
+    .side-title, .nav-item .label, .side-btn .label { display: none; }
+    .nav-item, .side-btn { justify-content: center; padding: 11px 0; }
+    .content { margin-left: 64px; padding: 22px 18px 12px; }
+  }
+
+  /* ---------- 移动端适配 ---------- */
+  @media (max-width: 760px) {
+    .card { padding: 14px; border-radius: 12px; }
+    .content { padding: 18px 12px 10px; }
+    input[type=text], input[type=password] { font-size: 16px; } /* 防止 iOS 聚焦缩放 */
+    /* 表格 → 卡片布局 */
+    table, tbody { display: block; }
+    thead { display: none; }
+    tbody tr { display: block; background: #fbfcfe; border: 1px solid var(--border);
+               border-radius: 12px; padding: 4px 12px; margin-bottom: 10px; }
+    tbody tr:hover td { background: transparent; }
+    td { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+         border-bottom: 1px dashed var(--border); padding: 9px 2px; text-align: right; }
+    td:last-child { border-bottom: none; }
+    td::before { content: attr(data-label); color: var(--muted); font-size: 12px;
+                 font-weight: 500; flex: 0 0 auto; text-align: left; }
+    td > div { flex: 1; justify-content: flex-end; }
+    td .doc-link { max-width: 48vw; text-align: right; }
+    .actions { justify-content: flex-end; }
+  }
+</style>
+</head>
+<body>
+<body>
+<div class="layout">
+  <!-- 左侧菜单栏 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-logo">
+      <span class="logo"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#fff"/><path d="M10.9 15.3 7.6 12l1.4-1.4 1.9 1.9 4.1-4.1 1.4 1.4-5.5 5.5z" fill="#3370ff"/></svg></span>
+      <span class="side-title">飞书文档密码管理器<small>fsdoc_pass_refresh</small></span>
+    </div>
+    <nav>
+      <a class="nav-item active" data-page="docs" onclick="showPage('docs')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        <span class="label">文档</span>
+      </a>
+      <a class="nav-item" data-page="api" onclick="showPage('api')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <span class="label">接口</span>
+      </a>
+      <a class="nav-item" data-page="auth" onclick="showPage('auth')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span class="label">认证</span>
+      </a>
+    </nav>
+    <div class="side-foot">
+      <button class="side-btn" onclick="openPwdModal()" title="修改密码">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="label">修改密码</span>
+      </button>
+      <button class="side-btn" onclick="logout()" title="退出登录">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="label">退出登录</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <main class="content" id="container" style="display:none">
+    <div class="content-inner">
+
+  <!-- 文档页 -->
+  <div class="page" id="page-docs">
+  <!-- 新增条目 -->
+  <div class="card">
+    <h2>新增文档条目</h2>
+    <div class="row">
+      <input type="text" id="docId" placeholder="条目 ID（可选，留空自增）" style="flex:0 1 140px">
+      <input type="text" id="docUrl" placeholder="文档链接，如 https://xxx.feishu.cn/wiki/xxxx">
+      <input type="text" id="docCron" placeholder="定时刷新 cron（可选，如 0 9 * * *）" style="flex:0 1 240px">
+      <button onclick="addEntry()">添加</button>
+    </div>
+  </div>
+
+  <!-- 条目列表 -->
+  <div class="card">
+    <h2>文档条目</h2>
+    <div class="row toolbar">
+      <button onclick="refreshSelected()">一键刷新所选</button>
+      <button class="ghost" onclick="refreshAll()">刷新全部</button>
+      <button class="danger" onclick="deleteSelected()">删除所选</button>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="checkAll" onchange="toggleCheckAll()"></th>
+          <th>ID</th>
+          <th>文档</th>
+          <th>类型</th>
+          <th>当前密码</th>
+          <th>状态</th>
+          <th>备注</th>
+          <th>定时任务</th>
+          <th>最近刷新</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="entryList"></tbody>
+    </table>
+    </div>
+    <div id="emptyTip" class="muted" style="display:none;padding:16px 0;text-align:center">暂无条目，请先添加文档链接</div>
+  </div>
+  </div><!-- /page-docs -->
+
+  <!-- 接口页 -->
+  <div class="page" id="page-api" style="display:none">
+  <!-- 对外 API 说明 -->
+  <div class="card">
+    <h2>对外接口</h2>
+    <div class="row" style="margin-bottom:10px">
+      <input type="password" id="apiPwdInput" placeholder="API 认证密码（至少 6 位，留空清除）" style="flex:0 1 260px">
+      <button class="ghost" onclick="saveApiPwd()">保存</button>
+      <span class="muted" id="apiPwdStatus">加载中...</span>
+    </div>
+    <div id="apiHint" style="font-size:12px;color:var(--muted);line-height:1.8">登录后展示请求示例</div>
+  </div>
+  </div><!-- /page-api -->
+
+  <!-- 认证页 -->
+  <div class="page" id="page-auth" style="display:none">
+  <!-- 统一认证 -->
+  <div class="card">
+    <h2>统一认证信息 <button class="ghost" id="authToggleBtn" onclick="toggleAuthForm()">修改认证</button></h2>
+    <div id="authStatus" class="auth-status auth-none">未配置认证信息</div>
+    <div id="authForm" class="row" style="display:none">
+      <input type="text" id="appId" placeholder="App ID（cli_xxx）">
+      <input type="password" id="appSecret" placeholder="App Secret">
+      <button onclick="saveAuth()">保存认证</button>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      所有条目的刷新都使用这份认证信息；应用需具备「修改云文档权限设置」（docs:permission.setting:write_only）权限，
+      并已通过文档「...」→「...更多」→「添加文档应用」添加为目标文档的文档应用。
+    </div>
+  </div>
+  </div><!-- /page-auth -->
+
+    </div><!-- /content-inner -->
+
+    <!-- 关于 -->
+    <footer class="about">
+      <span>飞书在线文档密码刷新</span>
+      <span class="dot">|</span>
+      <span>开发者 siruoren</span>
+      <a href="https://github.com/siruoren/fsdoc_pass_refresh" target="_blank" title="GitHub 仓库">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </footer>
+  </main>
+</div><!-- /layout -->
+<div class="toast" id="toast"></div>
+
+<!-- 登录遮罩 -->
+<div class="login-mask" id="loginMask" style="display:none">
+  <div class="login-box">
+    <h2>
+      <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#3370ff"/><path d="M10.9 15.3 7.6 12l1.4-1.4 1.9 1.9 4.1-4.1 1.4 1.4-5.5 5.5z" fill="#fff"/></svg>
+      飞书文档密码管理器
+    </h2>
+    <div class="sub">请输入访问密码，认证后 30 天内免登录</div>
+    <input type="password" id="pagePwd" placeholder="访问密码" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">进入</button>
+  </div>
+</div>
+
+<!-- 修改密码悬浮窗 -->
+<div class="login-mask" id="pwdMask" style="display:none">
+  <div class="login-box">
+    <h2>修改访问密码</h2>
+    <div class="sub">修改后其他已登录设备将失效，需重新登录</div>
+    <input type="password" id="oldPwd" placeholder="原密码">
+    <input type="password" id="newPwd1" placeholder="新密码（至少 6 位）">
+    <input type="password" id="newPwd2" placeholder="确认新密码" onkeydown="if(event.key==='Enter')changePwd()">
+    <div class="row" style="flex-wrap:nowrap">
+      <button class="ghost" style="flex:1" onclick="closePwdModal()">取消</button>
+      <button style="flex:1" onclick="changePwd()">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑定时任务悬浮窗 -->
+<div class="login-mask" id="cronMask" style="display:none">
+  <div class="login-box">
+    <h2>编辑定时任务</h2>
+    <div class="sub">条目 #<span id="cronEditId"></span> · 5 字段 cron 表达式，如 <code>0 9 * * *</code>，留空取消定时</div>
+    <input type="text" id="cronEditInput" placeholder="如 0 9 * * *" onkeydown="if(event.key==='Enter')saveCron()">
+    <div class="row" style="flex-wrap:nowrap">
+      <button class="ghost" style="flex:1" onclick="closeCronModal()">取消</button>
+      <button style="flex:1" onclick="saveCron()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑备注悬浮窗 -->
+<div class="login-mask" id="msgMask" style="display:none">
+  <div class="login-box">
+    <h2>编辑备注</h2>
+    <div class="sub">条目 #<span id="msgEditId"></span> · 备注随对外密码接口的 message 字段返回，留空清除</div>
+    <input type="text" id="msgEditInput" placeholder="输入备注内容" onkeydown="if(event.key==='Enter')saveMessage()">
+    <div class="row" style="flex-wrap:nowrap">
+      <button class="ghost" style="flex:1" onclick="closeMsgModal()">取消</button>
+      <button style="flex:1" onclick="saveMessage()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function req(url, opts) {
+  const resp = await fetch(API + url, opts);
+  if (resp.status === 401) { showLogin(); throw new Error('未认证，请先登录'); }
+  if (!resp.ok) {
+    let detail = resp.statusText;
+    try { const j = await resp.json(); detail = j.detail || JSON.stringify(j); } catch (e) {}
+    throw new Error(detail);
+  }
+  return resp.json();
+}
+
+// ---------- 页面访问认证 ----------
+
+function showLogin() {
+  document.getElementById('loginMask').style.display = 'flex';
+  document.getElementById('container').style.display = 'none';
+  document.getElementById('pagePwd').value = '';
+}
+
+function showMain() {
+  document.getElementById('loginMask').style.display = 'none';
+  document.getElementById('container').style.display = 'flex';
+  const p = ['api', 'auth'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'docs';
+  showPage(p, true);
+  loadApiPwdStatus();
+  loadAuth();
+  loadEntries();
+}
+
+// ---------- 左侧菜单页面切换 ----------
+
+function showPage(p, silent) {
+  ['docs', 'api', 'auth'].forEach(k => {
+    document.getElementById('page-' + k).style.display = (k === p) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(a => a.classList.toggle('active', a.dataset.page === p));
+  if (!silent) location.hash = p;
+  if (p === 'api') renderApiHint();
+}
+
+async function checkSession() {
+  try {
+    const s = await req('/api/session');
+    if (s.authenticated) showMain(); else showLogin();
+  } catch (e) { /* req 已触发 showLogin */ }
+}
+
+async function login() {
+  const pwd = document.getElementById('pagePwd').value;
+  if (!pwd) return toast('请输入访问密码');
+  try {
+    await req('/api/login', {method:'POST', headers:{'Content-Type':'application/json'},
+                             body: JSON.stringify({password: pwd})});
+    showMain();
+  } catch (e) { toast('密码错误'); }
+}
+
+async function logout() {
+  try { await req('/api/logout', {method:'POST'}); } catch (e) {}
+  showLogin();
+}
+
+// ---------- 修改密码 ----------
+
+function openPwdModal() {
+  ['oldPwd', 'newPwd1', 'newPwd2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pwdMask').style.display = 'flex';
+  document.getElementById('oldPwd').focus();
+}
+
+function closePwdModal() {
+  document.getElementById('pwdMask').style.display = 'none';
+}
+
+async function changePwd() {
+  const oldPwd = document.getElementById('oldPwd').value;
+  const n1 = document.getElementById('newPwd1').value;
+  const n2 = document.getElementById('newPwd2').value;
+  if (!oldPwd) return toast('请输入原密码');
+  if (!n1 || n1.length < 6) return toast('新密码至少 6 位');
+  if (n1 !== n2) return toast('两次输入的新密码不一致');
+  try {
+    const r = await req('/api/change-password', {method:'POST', headers:{'Content-Type':'application/json'},
+                                       body: JSON.stringify({old_password: oldPwd, new_password: n1})});
+    toast('密码已修改');
+    closePwdModal();
+  } catch (e) { toast(e.message); }
+}
+
+// ---------- 对外接口示例 ----------
+
+async function loadApiPwdStatus() {
+  const s = await req('/api/api-password');
+  const el = document.getElementById('apiPwdStatus');
+  el.textContent = s.configured ? '✓ 已设置，API 使用该密码认证' : '未设置，当前使用访问密码认证';
+}
+
+async function saveApiPwd() {
+  const input = document.getElementById('apiPwdInput');
+  const v = input.value.trim();
+  try {
+    const r = await req('/api/api-password', {method:'PUT', headers:{'Content-Type':'application/json'},
+                                              body: JSON.stringify({password: v || null})});
+    if (v) localStorage.setItem('apiPwdKey', v);
+    else localStorage.removeItem('apiPwdKey');
+    input.value = '';
+    toast(r.configured ? 'API 认证密码已保存' : 'API 认证密码已清除');
+    await loadApiPwdStatus();
+    renderApiHint();
+  } catch (e) { toast('保存失败: ' + e.message); }
+}
+
+function renderApiHint() {
+  const box = document.getElementById('apiHint');
+  const origin = location.origin;
+  const pwd = localStorage.getItem('apiPwdKey') || '你设置的API认证密码';
+  box.innerHTML = `
+    <div>请求头携带 API 认证密码即可调用（<code>Authorization: Bearer API认证密码</code>）：</div>
+    <pre class="api-code">GET ${origin}/api/password/{条目ID}
+Authorization: Bearer ${pwd}</pre>
+    <pre class="api-code">curl ${origin}/api/password/1 \\
+  -H "Authorization: Bearer ${pwd}"</pre>
+    <div class="muted">返回：{"id":1,"url":"...","status":"正常","password":"q795xx","message":"备注","last_refresh":"..."}；
+    message 优先显示条目「备注」中手动输入的内容，无备注时显示状态提示。未设置 API 认证密码时，可临时用访问密码认证；浏览器内已登录时也可直接用 Cookie 访问。</div>`;
+}
+
+const statusBadge = (s, msg) => {
+  const map = {'正常':'ok','权限不足':'denied','刷新失败':'failed','未配置认证':'failed','待刷新':'pending'};
+  return `<span class="badge ${map[s]||'pending'}" ${msg ? `title="${msg}" style="cursor:help"` : ''}>${s}</span>`;
+};
+
+let entryCache = [];
+let editEntryId = null;
+
+function passwordCell(e) {
+  if (e.status !== '正常' || !e.password)
+    return `<span class="pwd-none">—— 状态异常，密码隐藏</span>`;
+  return `<span class="pwd" data-pwd="${e.password}">${e.password}</span>`;
+}
+
+function cronCell(e) {
+  return `<div class="cell-inline">
+    <span class="muted">${e.cron || '未设置'}</span>
+    <button class="ghost" style="padding:5px 12px;font-size:12px"
+            onclick="openCronModal(${e.id})">修改</button>
+  </div>`;
+}
+
+function messageCell(e) {
+  return `<div class="cell-inline">
+    <span class="muted">${e.message || '—'}</span>
+    <button class="ghost" style="padding:5px 12px;font-size:12px"
+            onclick="openMsgModal(${e.id})">修改</button>
+  </div>`;
+}
+
+async function loadAuth() {
+  const st = await req('/api/auth');
+  const box = document.getElementById('authStatus');
+  document.getElementById('appId').value = st.app_id || '';
+  if (st.configured) {
+    box.className = 'auth-status auth-ok';
+    box.textContent = `已认证：App ID = ${st.app_id}（更新于 ${st.updated_at}）`;
+    document.getElementById('authToggleBtn').textContent = '修改认证';
+    document.getElementById('authForm').style.display = 'none';
+  } else {
+    box.className = 'auth-status auth-none';
+    box.textContent = '未配置认证信息，请先保存 App ID / App Secret';
+    document.getElementById('authToggleBtn').textContent = '去认证';
+    document.getElementById('authForm').style.display = 'flex';
+  }
+}
+
+function toggleAuthForm() {
+  const f = document.getElementById('authForm');
+  f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+}
+
+async function saveAuth() {
+  const appId = document.getElementById('appId').value.trim();
+  const secret = document.getElementById('appSecret').value.trim();
+  if (!appId || !secret) return toast('请填写 App ID 和 App Secret');
+  await req('/api/auth', {method:'POST', headers:{'Content-Type':'application/json'},
+                          body: JSON.stringify({app_id: appId, app_secret: secret})});
+  toast('认证信息已保存');
+  document.getElementById('appSecret').value = '';
+  await loadAuth(); await loadEntries();
+}
+
+async function loadEntries() {
+  const list = await req('/api/entries');
+  entryCache = list;
+  const tbody = document.getElementById('entryList');
+  document.getElementById('emptyTip').style.display = list.length ? 'none' : 'block';
+  tbody.innerHTML = list.map(e => `
+    <tr>
+      <td data-label="选择"><input type="checkbox" class="entry-check" value="${e.id}"></td>
+      <td data-label="ID">${e.id}</td>
+      <td data-label="文档"><a class="doc-link" href="${e.url}" target="_blank" title="${e.doc_token}">...${(e.doc_token || '').slice(-6)}</a></td>
+      <td data-label="类型">${e.doc_type}</td>
+      <td data-label="当前密码">${passwordCell(e)}</td>
+      <td data-label="状态">${statusBadge(e.status, e.status_msg)}</td>
+      <td data-label="备注">${messageCell(e)}</td>
+      <td data-label="定时任务">${cronCell(e)}</td>
+      <td data-label="最近刷新" class="muted">${e.last_refresh || '—'}</td>
+      <td data-label="操作"><div class="actions">
+        <button class="ghost" onclick="refreshOne(${e.id})">刷新</button>
+        <button class="danger" onclick="deleteEntry(${e.id})">删除</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+async function addEntry() {
+  const url = document.getElementById('docUrl').value.trim();
+  const cron = document.getElementById('docCron').value.trim();
+  const idRaw = document.getElementById('docId').value.trim();
+  const id = idRaw ? parseInt(idRaw, 10) : null;
+  if (!url) return toast('请输入文档链接');
+  if (idRaw && (!Number.isInteger(id) || id <= 0)) return toast('条目 ID 须为正整数');
+  try {
+    await req('/api/entries', {method:'POST', headers:{'Content-Type':'application/json'},
+                               body: JSON.stringify({url, cron: cron || null, id})});
+    document.getElementById('docUrl').value = '';
+    document.getElementById('docCron').value = '';
+    document.getElementById('docId').value = '';
+    toast('条目已添加');
+    await loadEntries();
+  } catch (e) { toast('添加失败: ' + e.message); }
+}
+
+async function refreshOne(id) {
+  toast('刷新中...');
+  try {
+    const r = await req(`/api/entries/${id}/refresh`, {method:'POST'});
+    toast(`条目 ${id} 刷新结果：${r.status}${r.password ? '，新密码 ' + r.password : ''}`);
+    await loadEntries();
+  } catch (e) { toast('刷新失败: ' + e.message); }
+}
+
+async function refreshSelected() {
+  const ids = [...document.querySelectorAll('.entry-check:checked')].map(c => +c.value);
+  if (!ids.length) return toast('请先勾选条目');
+  toast(`正在刷新 ${ids.length} 个条目...`);
+  try {
+    await req('/api/entries/batch-refresh', {method:'POST', headers:{'Content-Type':'application/json'},
+                                             body: JSON.stringify({ids})});
+    toast('所选条目刷新完成');
+    await loadEntries();
+  } catch (e) { toast('刷新失败: ' + e.message); }
+}
+
+async function refreshAll() {
+  toast('正在刷新全部条目...');
+  try {
+    await req('/api/entries/refresh-all', {method:'POST'});
+    toast('全部条目刷新完成');
+    await loadEntries();
+  } catch (e) { toast('刷新失败: ' + e.message); }
+}
+
+async function saveCron() {
+  const input = document.getElementById('cronEditInput');
+  try {
+    await req(`/api/entries/${editEntryId}/cron`, {method:'PUT', headers:{'Content-Type':'application/json'},
+                                          body: JSON.stringify({cron: input.value.trim() || null})});
+    toast('定时任务已保存');
+    closeCronModal();
+    await loadEntries();
+  } catch (e) { toast('保存失败: ' + e.message); }
+}
+
+async function saveMessage() {
+  const input = document.getElementById('msgEditInput');
+  try {
+    await req(`/api/entries/${editEntryId}/message`, {method:'PUT', headers:{'Content-Type':'application/json'},
+                                             body: JSON.stringify({message: input.value.trim() || null})});
+    toast('备注已保存');
+    closeMsgModal();
+    await loadEntries();
+  } catch (e) { toast('保存失败: ' + e.message); }
+}
+
+function openCronModal(id) {
+  const e = entryCache.find(x => x.id === id);
+  editEntryId = id;
+  document.getElementById('cronEditId').textContent = id;
+  document.getElementById('cronEditInput').value = (e && e.cron) || '';
+  document.getElementById('cronMask').style.display = 'flex';
+  document.getElementById('cronEditInput').focus();
+}
+
+function closeCronModal() {
+  document.getElementById('cronMask').style.display = 'none';
+}
+
+function openMsgModal(id) {
+  const e = entryCache.find(x => x.id === id);
+  editEntryId = id;
+  document.getElementById('msgEditId').textContent = id;
+  document.getElementById('msgEditInput').value = (e && e.message) || '';
+  document.getElementById('msgMask').style.display = 'flex';
+  document.getElementById('msgEditInput').focus();
+}
+
+function closeMsgModal() {
+  document.getElementById('msgMask').style.display = 'none';
+}
+
+async function deleteEntry(id) {
+  if (!confirm(`确认删除条目 ${id}？`)) return;
+  await req(`/api/entries/${id}`, {method:'DELETE'});
+  await loadEntries();
+}
+
+async function deleteSelected() {
+  const ids = [...document.querySelectorAll('.entry-check:checked')].map(c => +c.value);
+  if (!ids.length) return toast('请先勾选条目');
+  if (!confirm(`确认删除所选 ${ids.length} 个条目？`)) return;
+  for (const id of ids) await req(`/api/entries/${id}`, {method:'DELETE'});
+  await loadEntries();
+}
+
+function toggleCheckAll() {
+  const checked = document.getElementById('checkAll').checked;
+  document.querySelectorAll('.entry-check').forEach(c => c.checked = checked);
+}
+
+checkSession();
+</script>
+</body>
+</html>
