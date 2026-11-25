@@ -110,8 +110,7 @@
          padding: 3px 10px; border-radius: 7px; white-space: nowrap; }
   .pwd-none { color: var(--err); font-weight: 500; }
   .muted { color: var(--muted); font-size: 12px; }
-  .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-8px);
-           background: rgba(28,35,51,.92); color: #fff; padding: 11px 20px; border-radius: 10px;
+  .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-8px);           background: rgba(28,35,51,.92); color: #fff; padding: 11px 20px; border-radius: 10px;
            font-size: 13px; opacity: 0; transition: opacity .25s, transform .25s;
            z-index: 999; max-width: 88vw; word-break: break-all; backdrop-filter: blur(6px); }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -119,6 +118,11 @@
   .actions button { padding: 6px 12px; font-size: 12px; box-shadow: none; }
   .cell-inline { display: flex; align-items: center; justify-content: space-between;
                  gap: 8px; flex-wrap: nowrap; min-width: 90px; }
+  .cell-tip { display: none; position: fixed; z-index: 300; max-width: 320px;
+              background: rgba(28,35,51,.95); color: #fff; padding: 8px 12px;
+              border-radius: 8px; font-size: 12px; line-height: 1.6;
+              box-shadow: 0 6px 18px rgba(16,24,40,.25); word-break: break-all;
+              pointer-events: none; backdrop-filter: blur(6px); }
   .toolbar { margin-bottom: 12px; }
   #apiHint { font-size: 12px; color: var(--muted); line-height: 1.8; }
   pre.api-code { background: #f2f5fa; border: 1px solid var(--border); padding: 10px 12px;
@@ -299,6 +303,7 @@
   </main>
 </div><!-- /layout -->
 <div class="toast" id="toast"></div>
+<div class="cell-tip" id="cellTip"></div>
 
 <!-- 登录遮罩 -->
 <div class="login-mask" id="loginMask" style="display:none">
@@ -505,7 +510,10 @@ function passwordCell(e) {
 
 function cronCell(e) {
   return `<div class="cell-inline">
-    <span class="muted">${e.cron || '未设置'}</span>
+    <button class="ghost" style="padding:5px 12px;font-size:12px"
+            onmouseenter="showCellTip(this, '${escAttr(e.cron || '未设置')}')"
+            onmouseleave="hideCellTip()"
+            onclick="showCellTip(this, '${escAttr(e.cron || '未设置')}')">显示</button>
     <button class="ghost" style="padding:5px 12px;font-size:12px"
             onclick="openCronModal(${e.id})">修改</button>
   </div>`;
@@ -513,10 +521,36 @@ function cronCell(e) {
 
 function messageCell(e) {
   return `<div class="cell-inline">
-    <span class="muted">${e.message || '—'}</span>
+    <button class="ghost" style="padding:5px 12px;font-size:12px"
+            onmouseenter="showCellTip(this, '${escAttr(e.message || '未设置备注')}')"
+            onmouseleave="hideCellTip()"
+            onclick="showCellTip(this, '${escAttr(e.message || '未设置备注')}')">显示</button>
     <button class="ghost" style="padding:5px 12px;font-size:12px"
             onclick="openMsgModal(${e.id})">修改</button>
   </div>`;
+}
+
+// ---------- 单元格内容悬浮提示 ----------
+
+function escAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#39;').replace(/\n/g, ' ');
+}
+
+function showCellTip(btn, text) {
+  const tip = document.getElementById('cellTip');
+  tip.textContent = text;
+  tip.style.display = 'block';
+  const r = btn.getBoundingClientRect();
+  const tw = tip.offsetWidth;
+  let left = r.left + r.width / 2 - tw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+  tip.style.left = left + 'px';
+  tip.style.top = (r.bottom + 6) + 'px';
+}
+
+function hideCellTip() {
+  document.getElementById('cellTip').style.display = 'none';
 }
 
 async function loadAuth() {
