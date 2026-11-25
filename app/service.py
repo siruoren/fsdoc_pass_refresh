@@ -27,10 +27,6 @@ def refresh_entry(entry_id: int) -> dict:
 
     try:
         access_token = feishu.get_tenant_access_token(auth["app_id"], auth["app_secret"])
-        # 顺带更新文档名称（失败不影响主流程）
-        title = feishu.get_doc_title(entry["doc_token"], entry["doc_type"], access_token)
-        if title:
-            db.update_entry_title(entry_id, title)
         notice = feishu.ensure_link_share_anyone(entry["doc_token"], entry["doc_type"], access_token)
         password = feishu.rotate_password(entry["doc_token"], entry["doc_type"], access_token)
         db.save_refresh_result(entry_id, password, STATUS_OK, notice or "")
@@ -54,16 +50,6 @@ def add_entry(url: str, cron: str = None, entry_id: int = None) -> dict:
     doc_token, doc_type = feishu.parse_doc_url(url)
     if not doc_type:
         raise FeishuError(-1, "无法识别文档类型", "请使用完整的文档链接（/wiki/、/docx/、/sheet/ 等）")
-    title = doc_token
-    auth = db.get_auth()
-    if auth:
-        try:
-            access_token = feishu.get_tenant_access_token(auth["app_id"], auth["app_secret"])
-            fetched = feishu.get_doc_title(doc_token, doc_type, access_token)
-            if fetched:
-                title = fetched
-        except Exception:
-            pass  # 获取标题失败时先以 token 占位，刷新成功后会再次尝试
-    entry_id = db.add_entry(url.strip(), doc_token, doc_type, title,
+    entry_id = db.add_entry(url.strip(), doc_token, doc_type, None,
                             (cron or "").strip() or None, entry_id)
     return db.get_entry(entry_id)

@@ -154,31 +154,3 @@ def ensure_link_share_anyone(token, doc_type, access_token):
         return f"链接分享原为「{link_share or '未开启/未知'}」，已设置为互联网可阅读"
     except FeishuError:
         return None  # 无法读写分享设置，交由刷新密码步骤报错
-
-
-def get_doc_title(token, doc_type, access_token):
-    """获取文档标题；失败（无权限/接口异常）时返回 None，不影响主流程。"""
-    headers = {"Authorization": f"Bearer {access_token}"}
-    try:
-        if doc_type == "wiki":
-            r = _handle(requests.get(f"{BASE}/wiki/v2/spaces/get_node",
-                                     headers=headers, params={"token": token}, timeout=TIMEOUT))
-            return (r.get("data", {}).get("node") or {}).get("title")
-        if doc_type == "docx":
-            r = _handle(requests.get(f"{BASE}/docx/v1/documents/{token}",
-                                     headers=headers, timeout=TIMEOUT))
-            return (r.get("data", {}).get("document") or {}).get("title")
-        if doc_type == "sheet":
-            r = _handle(requests.get(f"{BASE}/sheets/v3/spreadsheets/{token}",
-                                     headers=headers, timeout=TIMEOUT))
-            return (r.get("data", {}).get("spreadsheet") or {}).get("title")
-        if doc_type == "bitable":
-            r = _handle(requests.get(f"{BASE}/bitable/v1/apps/{token}",
-                                     headers=headers, timeout=TIMEOUT))
-            return (r.get("data", {}).get("app") or {}).get("name")
-        # doc / file：云文档元信息接口
-        r = _handle(requests.get(f"{BASE}/drive/v2/files/{token}",
-                                 headers=headers, params={"type": doc_type}, timeout=TIMEOUT))
-        return (r.get("data", {}).get("file") or {}).get("name")
-    except Exception:
-        return None

@@ -160,11 +160,6 @@ def update_entry_cron(entry_id, cron):
         conn.execute("UPDATE entries SET cron = ? WHERE id = ?", (cron, entry_id))
 
 
-def update_entry_title(entry_id, title):
-    with _lock, _connect() as conn:
-        conn.execute("UPDATE entries SET title = ? WHERE id = ?", (title, entry_id))
-
-
 def update_entry_message(entry_id, message):
     with _lock, _connect() as conn:
         conn.execute("UPDATE entries SET message = ? WHERE id = ?", (message, entry_id))
