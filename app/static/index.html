@@ -26,14 +26,40 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
     background: linear-gradient(180deg, #e9eef8 0%, var(--bg) 260px);
-    color: var(--text); padding: 20px 16px 48px; min-height: 100vh;
+    color: var(--text); min-height: 100vh;
   }
-  .container { max-width: 960px; margin: 0 auto; }
-  h1 { font-size: 22px; font-weight: 700; letter-spacing: -.2px; display: flex; align-items: center; gap: 10px; }
-  h1 .logo { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px;
-             background: linear-gradient(135deg, #4d8bff, #2653d9); display: flex;
-             align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(51,112,255,.35); }
-  .subtitle { color: var(--muted); font-size: 13px; margin: 6px 0 20px 44px; }
+  .sidebar { position: fixed; inset: 0 auto 0 0; width: 212px; background: var(--card);
+             border-right: 1px solid var(--border); display: flex; flex-direction: column;
+             padding: 20px 12px 16px; z-index: 100; transition: width .2s ease; }
+  .side-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 20px; overflow: hidden; white-space: nowrap; }
+  .side-logo .logo { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+                     background: linear-gradient(135deg, #4d8bff, #2653d9); display: flex;
+                     align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(51,112,255,.35); }
+  .side-title { font-weight: 700; font-size: 14px; line-height: 1.3; }
+  .side-title small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px;
+              color: var(--text); font-size: 14px; cursor: pointer; text-decoration: none;
+              white-space: nowrap; overflow: hidden; transition: background .15s, color .15s; }
+  .nav-item:hover { background: #f2f5fa; }
+  .nav-item.active { background: var(--primary-soft); color: var(--primary-dark); font-weight: 600; }
+  .nav-item svg { flex: 0 0 auto; }
+  .side-foot { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .side-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px;
+              background: none; border: none; color: var(--text); font-size: 13px; font-weight: 500;
+              box-shadow: none; cursor: pointer; white-space: nowrap; overflow: hidden; }
+  .side-btn:hover { background: #f2f5fa; }
+  .side-btn svg { flex: 0 0 auto; }
+  .content { margin-left: 212px; padding: 28px 28px 16px; min-height: 100vh;
+             display: flex; flex-direction: column; }
+  .content-inner { flex: 1; max-width: 960px; width: 100%; }
+  .about { margin-top: 24px; padding: 16px 4px 4px; border-top: 1px solid var(--border);
+           color: var(--muted); font-size: 12px; display: flex; align-items: center;
+           justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .about .dot { color: #c8cfdb; }
+  .about a { color: var(--muted); text-decoration: none; display: inline-flex;
+             align-items: center; gap: 5px; font-weight: 500; }
+  .about a:hover { color: var(--primary); }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
           padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
   .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex;
@@ -98,8 +124,6 @@
                  border-radius: 8px; font-size: 12px; overflow-x: auto; line-height: 1.7;
                  margin: 6px 0 10px; white-space: pre-wrap; word-break: break-all; }
   code { background: #f2f5fa; padding: 2px 7px; border-radius: 5px; font-size: 12px; }
-  .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-  .header-actions { display: flex; gap: 8px; }
   .login-mask { position: fixed; inset: 0; background: rgba(233,238,248,.75);
                 display: flex; align-items: center; justify-content: center; z-index: 1000;
                 padding: 16px; backdrop-filter: blur(4px); }
@@ -112,15 +136,19 @@
   .login-box input { width: 100%; flex: none; margin-bottom: 12px; }
   .login-box button { width: 100%; padding: 11px; }
 
+  /* ---------- 侧边栏自动收起（页面较窄时仅显示图标） ---------- */
+  @media (max-width: 900px) {
+    .sidebar { width: 64px; padding: 16px 8px 14px; }
+    .side-logo { justify-content: center; padding: 0 0 16px; }
+    .side-title, .nav-item .label, .side-btn .label { display: none; }
+    .nav-item, .side-btn { justify-content: center; padding: 11px 0; }
+    .content { margin-left: 64px; padding: 22px 18px 12px; }
+  }
+
   /* ---------- 移动端适配 ---------- */
   @media (max-width: 760px) {
-    body { padding: 14px 12px 32px; }
     .card { padding: 14px; border-radius: 12px; }
-    h1 { font-size: 19px; }
-    .subtitle { margin-left: 0; }
-    .header-row { flex-direction: column; }
-    .header-actions { width: 100%; }
-    .header-actions button { flex: 1; }
+    .content { padding: 18px 12px 10px; }
     input[type=text], input[type=password] { font-size: 16px; } /* 防止 iOS 聚焦缩放 */
     /* 表格 → 卡片布局 */
     table, tbody { display: block; }
@@ -134,39 +162,52 @@
     td::before { content: attr(data-label); color: var(--muted); font-size: 12px;
                  font-weight: 500; flex: 0 0 auto; text-align: left; }
     td > div { flex: 1; justify-content: flex-end; }
-    td .doc-link { max-width: 56vw; text-align: right; }
+    td .doc-link { max-width: 48vw; text-align: right; }
     .actions { justify-content: flex-end; }
   }
 </style>
 </head>
 <body>
-<div class="container" id="container" style="display:none">
-  <div class="header-row">
-    <div>
-      <h1><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#fff"/><path d="M10.9 15.3 7.6 12l1.4-1.4 1.9 1.9 4.1-4.1 1.4 1.4-5.5 5.5z" fill="#3370ff"/></svg></span>飞书文档密码管理器</h1>
-      <div class="subtitle">添加在线文档链接，一键或定时刷新访问密码；密码可通过 API 按条目 ID 获取</div>
+<body>
+<div class="layout">
+  <!-- 左侧菜单栏 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-logo">
+      <span class="logo"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#fff"/><path d="M10.9 15.3 7.6 12l1.4-1.4 1.9 1.9 4.1-4.1 1.4 1.4-5.5 5.5z" fill="#3370ff"/></svg></span>
+      <span class="side-title">飞书文档密码管理器<small>fsdoc_pass_refresh</small></span>
     </div>
-    <div class="header-actions">
-      <button class="ghost" onclick="openPwdModal()">修改密码</button>
-      <button class="ghost" onclick="logout()">退出登录</button>
+    <nav>
+      <a class="nav-item active" data-page="docs" onclick="showPage('docs')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        <span class="label">文档</span>
+      </a>
+      <a class="nav-item" data-page="api" onclick="showPage('api')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <span class="label">接口</span>
+      </a>
+      <a class="nav-item" data-page="auth" onclick="showPage('auth')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span class="label">认证</span>
+      </a>
+    </nav>
+    <div class="side-foot">
+      <button class="side-btn" onclick="openPwdModal()" title="修改密码">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="label">修改密码</span>
+      </button>
+      <button class="side-btn" onclick="logout()" title="退出登录">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="label">退出登录</span>
+      </button>
     </div>
-  </div>
+  </aside>
 
-  <!-- 统一认证 -->
-  <div class="card">
-    <h2>统一认证信息 <button class="ghost" id="authToggleBtn" onclick="toggleAuthForm()">修改认证</button></h2>
-    <div id="authStatus" class="auth-status auth-none">未配置认证信息</div>
-    <div id="authForm" class="row" style="display:none">
-      <input type="text" id="appId" placeholder="App ID（cli_xxx）">
-      <input type="password" id="appSecret" placeholder="App Secret">
-      <button onclick="saveAuth()">保存认证</button>
-    </div>
-    <div class="muted" style="margin-top:8px">
-      所有条目的刷新都使用这份认证信息；应用需具备「修改云文档权限设置」等权限，并已通过文档
-      「...」→「...更多」→「添加文档应用」添加为目标文档的文档应用。
-    </div>
-  </div>
+  <!-- 主内容区 -->
+  <main class="content" id="container" style="display:none">
+    <div class="content-inner">
 
+  <!-- 文档页 -->
+  <div class="page" id="page-docs">
   <!-- 新增条目 -->
   <div class="card">
     <h2>新增文档条目</h2>
@@ -207,7 +248,10 @@
     </div>
     <div id="emptyTip" class="muted" style="display:none;padding:16px 0;text-align:center">暂无条目，请先添加文档链接</div>
   </div>
+  </div><!-- /page-docs -->
 
+  <!-- 接口页 -->
+  <div class="page" id="page-api" style="display:none">
   <!-- 对外 API 说明 -->
   <div class="card">
     <h2>对外接口</h2>
@@ -218,7 +262,40 @@
     </div>
     <div id="apiHint" style="font-size:12px;color:var(--muted);line-height:1.8">登录后展示请求示例</div>
   </div>
-</div>
+  </div><!-- /page-api -->
+
+  <!-- 认证页 -->
+  <div class="page" id="page-auth" style="display:none">
+  <!-- 统一认证 -->
+  <div class="card">
+    <h2>统一认证信息 <button class="ghost" id="authToggleBtn" onclick="toggleAuthForm()">修改认证</button></h2>
+    <div id="authStatus" class="auth-status auth-none">未配置认证信息</div>
+    <div id="authForm" class="row" style="display:none">
+      <input type="text" id="appId" placeholder="App ID（cli_xxx）">
+      <input type="password" id="appSecret" placeholder="App Secret">
+      <button onclick="saveAuth()">保存认证</button>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      所有条目的刷新都使用这份认证信息；应用需具备「修改云文档权限设置」（docs:permission.setting:write_only）权限，
+      并已通过文档「...」→「...更多」→「添加文档应用」添加为目标文档的文档应用。
+    </div>
+  </div>
+  </div><!-- /page-auth -->
+
+    </div><!-- /content-inner -->
+
+    <!-- 关于 -->
+    <footer class="about">
+      <span>fsdoc_pass_refresh · 飞书在线文档密码刷新</span>
+      <span class="dot">|</span>
+      <span>开发者 siruoren</span>
+      <a href="https://github.com/siruoren/fsdoc_pass_refresh" target="_blank" title="GitHub 仓库">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </footer>
+  </main>
+</div><!-- /layout -->
 <div class="toast" id="toast"></div>
 
 <!-- 登录遮罩 -->
@@ -305,11 +382,23 @@ function showLogin() {
 
 function showMain() {
   document.getElementById('loginMask').style.display = 'none';
-  document.getElementById('container').style.display = 'block';
-  renderApiHint();
+  document.getElementById('container').style.display = 'flex';
+  const p = ['api', 'auth'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'docs';
+  showPage(p, true);
   loadApiPwdStatus();
   loadAuth();
   loadEntries();
+}
+
+// ---------- 左侧菜单页面切换 ----------
+
+function showPage(p, silent) {
+  ['docs', 'api', 'auth'].forEach(k => {
+    document.getElementById('page-' + k).style.display = (k === p) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(a => a.classList.toggle('active', a.dataset.page === p));
+  if (!silent) location.hash = p;
+  if (p === 'api') renderApiHint();
 }
 
 async function checkSession() {
