@@ -8,91 +8,145 @@
 <style>
   :root {
     --primary: #3370ff;
-    --bg: #f2f4f8;
+    --primary-dark: #2653d9;
+    --primary-soft: #eaf1ff;
+    --bg: #f4f6fa;
     --card: #ffffff;
-    --border: #e2e6ee;
-    --text: #1f2329;
-    --muted: #8f959e;
-    --ok: #34c724;
-    --warn: #ff8800;
-    --err: #f54a45;
+    --border: #e5e9f2;
+    --text: #1c2333;
+    --muted: #8a93a6;
+    --ok: #1e9e55; --ok-bg: #e6f7ed;
+    --warn: #d97a00; --warn-bg: #fff4e5;
+    --err: #e5484d; --err-bg: #fdecec;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 12px rgba(16,24,40,.06);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-         background: var(--bg); color: var(--text); padding: 24px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #e9eef8 0%, var(--bg) 260px);
+    color: var(--text); padding: 20px 16px 48px; min-height: 100vh;
+  }
   .container { max-width: 960px; margin: 0 auto; }
-  h1 { font-size: 22px; margin-bottom: 4px; }
-  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
-  .card { background: var(--card); border-radius: 10px; padding: 18px;
-          box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; }
-  .card h2 { font-size: 15px; margin-bottom: 12px; display: flex;
-             align-items: center; justify-content: space-between; }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: -.2px; display: flex; align-items: center; gap: 10px; }
+  h1 .logo { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px;
+             background: linear-gradient(135deg, #4d8bff, #2653d9); display: flex;
+             align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(51,112,255,.35); }
+  .subtitle { color: var(--muted); font-size: 13px; margin: 6px 0 20px 44px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex;
+             align-items: center; justify-content: space-between; gap: 8px; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   input[type=text], input[type=password] {
-    flex: 1; min-width: 180px; padding: 8px 10px; border: 1px solid var(--border);
-    border-radius: 6px; font-size: 13px; outline: none;
+    flex: 1; min-width: 150px; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; outline: none; background: #fbfcfe;
+    transition: border-color .15s, box-shadow .15s, background .15s;
   }
-  input:focus { border-color: var(--primary); }
+  input::placeholder { color: #b3bac8; }
+  input:focus { border-color: var(--primary); background: #fff;
+                box-shadow: 0 0 0 3px rgba(51,112,255,.12); }
   button {
-    padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px;
+    padding: 9px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
     cursor: pointer; background: var(--primary); color: #fff; white-space: nowrap;
+    transition: background .15s, transform .05s, box-shadow .15s;
+    box-shadow: 0 2px 5px rgba(51,112,255,.25);
   }
-  button:hover { opacity: .9; }
-  button.ghost { background: #fff; color: var(--text); border: 1px solid var(--border); }
-  button.danger { background: #fff; color: var(--err); border: 1px solid var(--border); }
+  button:hover { background: var(--primary-dark); }
+  button:active { transform: scale(.97); }
+  button.ghost { background: #fff; color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+  button.ghost:hover { background: #f4f6fa; border-color: #ccd4e0; }
+  button.danger { background: #fff; color: var(--err); border: 1px solid #f3c4c6; box-shadow: none; }
+  button.danger:hover { background: var(--err-bg); }
   button:disabled { opacity: .5; cursor: not-allowed; }
-  .auth-status { font-size: 13px; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; }
-  .auth-ok { background: #e8f5e9; color: var(--ok); }
-  .auth-none { background: #fff3e0; color: var(--warn); }
+  .auth-status { font-size: 13px; padding: 10px 14px; border-radius: 10px; margin-bottom: 10px; }
+  .auth-ok { background: var(--ok-bg); color: var(--ok); }
+  .auth-none { background: var(--warn-bg); color: var(--warn); }
+  .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left;
+  th, td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: left;
            vertical-align: middle; }
-  th { color: var(--muted); font-weight: 500; font-size: 12px; }
-  tr:hover td { background: #f8f9fb; }
-  a.doc-link { color: var(--primary); text-decoration: none; word-break: break-all; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px;
-           font-size: 12px; white-space: nowrap; }
-  .badge.ok { background: #e8f5e9; color: var(--ok); }
-  .badge.denied { background: #fdecec; color: var(--err); }
-  .badge.failed { background: #fff3e0; color: var(--warn); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; white-space: nowrap; }
+  tbody tr { transition: background .1s; }
+  tbody tr:hover td { background: #f7f9fd; }
+  a.doc-link { color: var(--primary); text-decoration: none; font-weight: 500; word-break: break-all; }
+  a.doc-link:hover { text-decoration: underline; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 99px;
+           font-size: 12px; white-space: nowrap; font-weight: 500; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.denied { background: var(--err-bg); color: var(--err); }
+  .badge.failed { background: var(--warn-bg); color: var(--warn); }
   .badge.pending { background: #eef1f6; color: var(--muted); }
-  .pwd { font-family: "SF Mono", Menlo, monospace; font-weight: 600; letter-spacing: 1px; }
+  .pwd { font-family: "SF Mono", Menlo, Consolas, monospace; font-weight: 600;
+         letter-spacing: 1px; background: var(--primary-soft); color: var(--primary-dark);
+         padding: 3px 10px; border-radius: 7px; }
   .pwd-none { color: var(--err); font-weight: 500; }
-  .msg { color: var(--err); font-size: 12px; max-width: 220px; word-break: break-all; }
+  .msg { color: var(--err); font-size: 12px; max-width: 220px; word-break: break-all; margin-top: 4px; }
   .muted { color: var(--muted); font-size: 12px; }
-  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-           background: #1f2329; color: #fff; padding: 10px 18px; border-radius: 8px;
-           font-size: 13px; opacity: 0; transition: opacity .3s; z-index: 99; }
-  .toast.show { opacity: .95; }
+  .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-8px);
+           background: rgba(28,35,51,.92); color: #fff; padding: 11px 20px; border-radius: 10px;
+           font-size: 13px; opacity: 0; transition: opacity .25s, transform .25s;
+           z-index: 999; max-width: 88vw; word-break: break-all; backdrop-filter: blur(6px); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .actions { display: flex; gap: 6px; }
-  .actions button { padding: 5px 10px; font-size: 12px; }
-  .toolbar { margin-bottom: 10px; }
+  .actions button { padding: 6px 12px; font-size: 12px; box-shadow: none; }
+  .toolbar { margin-bottom: 12px; }
   #apiHint { font-size: 12px; color: var(--muted); line-height: 1.8; }
-  pre.api-code { background: #eef1f6; padding: 8px 10px; border-radius: 6px;
-                 font-size: 12px; overflow-x: auto; line-height: 1.6;
-                 margin: 4px 0 8px; white-space: pre-wrap; word-break: break-all; }
-  code { background: #eef1f6; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
-  .header-row { display: flex; align-items: flex-start; justify-content: space-between; }
-  .login-mask { position: fixed; inset: 0; background: var(--bg);
-                display: flex; align-items: center; justify-content: center; z-index: 1000; }
-  .login-box { background: var(--card); padding: 32px 28px; border-radius: 12px;
-               box-shadow: 0 4px 20px rgba(0,0,0,.1); width: 340px; }
-  .login-box h2 { display: flex; align-items: center; gap: 8px; font-size: 18px;
+  pre.api-code { background: #f2f5fa; border: 1px solid var(--border); padding: 10px 12px;
+                 border-radius: 8px; font-size: 12px; overflow-x: auto; line-height: 1.7;
+                 margin: 6px 0 10px; white-space: pre-wrap; word-break: break-all; }
+  code { background: #f2f5fa; padding: 2px 7px; border-radius: 5px; font-size: 12px; }
+  .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .header-actions { display: flex; gap: 8px; }
+  .login-mask { position: fixed; inset: 0; background: rgba(233,238,248,.75);
+                display: flex; align-items: center; justify-content: center; z-index: 1000;
+                padding: 16px; backdrop-filter: blur(4px); }
+  .login-box { background: var(--card); padding: 30px 26px; border-radius: 18px;
+               box-shadow: 0 12px 40px rgba(16,24,40,.18); width: min(360px, 100%);
+               border: 1px solid var(--border); }
+  .login-box h2 { display: flex; align-items: center; gap: 8px; font-size: 17px;
                   margin-bottom: 6px; justify-content: center; }
-  .login-box .sub { color: var(--muted); font-size: 13px; text-align: center;
-                    margin-bottom: 18px; }
+  .login-box .sub { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 18px; }
   .login-box input { width: 100%; flex: none; margin-bottom: 12px; }
-  .login-box button { width: 100%; }
+  .login-box button { width: 100%; padding: 11px; }
+
+  /* ---------- 移动端适配 ---------- */
+  @media (max-width: 760px) {
+    body { padding: 14px 12px 32px; }
+    .card { padding: 14px; border-radius: 12px; }
+    h1 { font-size: 19px; }
+    .subtitle { margin-left: 0; }
+    .header-row { flex-direction: column; }
+    .header-actions { width: 100%; }
+    .header-actions button { flex: 1; }
+    input[type=text], input[type=password] { font-size: 16px; } /* 防止 iOS 聚焦缩放 */
+    /* 表格 → 卡片布局 */
+    table, tbody { display: block; }
+    thead { display: none; }
+    tbody tr { display: block; background: #fbfcfe; border: 1px solid var(--border);
+               border-radius: 12px; padding: 4px 12px; margin-bottom: 10px; }
+    tbody tr:hover td { background: transparent; }
+    td { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+         border-bottom: 1px dashed var(--border); padding: 9px 2px; text-align: right; }
+    td:last-child { border-bottom: none; }
+    td::before { content: attr(data-label); color: var(--muted); font-size: 12px;
+                 font-weight: 500; flex: 0 0 auto; text-align: left; }
+    td > div { flex: 1; justify-content: flex-end; }
+    .msg { max-width: none; }
+    td .doc-link { max-width: 56vw; text-align: right; }
+    .actions { justify-content: flex-end; }
+  }
 </style>
 </head>
 <body>
 <div class="container" id="container" style="display:none">
   <div class="header-row">
     <div>
-      <h1>飞书文档密码管理器</h1>
+      <h1><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 9.74 8 11 4.6-1.26 8-5.75 8-11V5l-8-3z" fill="#fff"/><path d="M10.9 15.3 7.6 12l1.4-1.4 1.9 1.9 4.1-4.1 1.4 1.4-5.5 5.5z" fill="#3370ff"/></svg></span>飞书文档密码管理器</h1>
       <div class="subtitle">添加在线文档链接，一键或定时刷新访问密码；密码可通过 API 按条目 ID 获取</div>
     </div>
-    <div style="display:flex;gap:8px">
+    <div class="header-actions">
       <button class="ghost" onclick="openPwdModal()">修改密码</button>
       <button class="ghost" onclick="logout()">退出登录</button>
     </div>
@@ -132,6 +186,7 @@
       <button class="ghost" onclick="refreshAll()">刷新全部</button>
       <button class="danger" onclick="deleteSelected()">删除所选</button>
     </div>
+    <div class="table-wrap">
     <table>
       <thead>
         <tr>
@@ -149,6 +204,7 @@
       </thead>
       <tbody id="entryList"></tbody>
     </table>
+    </div>
     <div id="emptyTip" class="muted" style="display:none;padding:16px 0;text-align:center">暂无条目，请先添加文档链接</div>
   </div>
 
@@ -331,8 +387,8 @@ function cronCell(e) {
   const c = e.cron || '';
   return `<div class="row" style="flex-wrap:nowrap">
     <input type="text" value="${c}" data-cron="${e.id}" placeholder="未设置"
-           style="min-width:110px;max-width:130px;padding:4px 6px;font-size:12px">
-    <button class="ghost" style="padding:4px 8px;font-size:12px"
+           style="flex:1;min-width:70px;padding:5px 8px;font-size:12px">
+    <button class="ghost" style="padding:5px 10px;font-size:12px"
             onclick="saveCron(${e.id})">保存</button>
   </div>`;
 }
@@ -341,8 +397,8 @@ function messageCell(e) {
   const m = e.message || '';
   return `<div class="row" style="flex-wrap:nowrap">
     <input type="text" value="${m}" data-message="${e.id}" placeholder="手动输入备注"
-           style="min-width:110px;max-width:160px;padding:4px 6px;font-size:12px">
-    <button class="ghost" style="padding:4px 8px;font-size:12px"
+           style="flex:1;min-width:70px;padding:5px 8px;font-size:12px">
+    <button class="ghost" style="padding:5px 10px;font-size:12px"
             onclick="saveMessage(${e.id})">保存</button>
   </div>`;
 }
@@ -386,16 +442,16 @@ async function loadEntries() {
   document.getElementById('emptyTip').style.display = list.length ? 'none' : 'block';
   tbody.innerHTML = list.map(e => `
     <tr>
-      <td><input type="checkbox" class="entry-check" value="${e.id}"></td>
-      <td>${e.id}</td>
-      <td><a class="doc-link" href="${e.url}" target="_blank">${e.title || e.doc_token}</a></td>
-      <td>${e.doc_type}</td>
-      <td>${passwordCell(e)}</td>
-      <td>${statusBadge(e.status)}${e.status_msg ? `<div class="msg">${e.status_msg}</div>` : ''}</td>
-      <td>${messageCell(e)}</td>
-      <td>${cronCell(e)}</td>
-      <td class="muted">${e.last_refresh || '—'}</td>
-      <td><div class="actions">
+      <td data-label="选择"><input type="checkbox" class="entry-check" value="${e.id}"></td>
+      <td data-label="ID">${e.id}</td>
+      <td data-label="文档"><a class="doc-link" href="${e.url}" target="_blank">${e.title || e.doc_token}</a></td>
+      <td data-label="类型">${e.doc_type}</td>
+      <td data-label="当前密码">${passwordCell(e)}</td>
+      <td data-label="状态">${statusBadge(e.status)}${e.status_msg ? `<div class="msg">${e.status_msg}</div>` : ''}</td>
+      <td data-label="备注">${messageCell(e)}</td>
+      <td data-label="定时任务">${cronCell(e)}</td>
+      <td data-label="最近刷新" class="muted">${e.last_refresh || '—'}</td>
+      <td data-label="操作"><div class="actions">
         <button class="ghost" onclick="refreshOne(${e.id})">刷新</button>
         <button class="danger" onclick="deleteEntry(${e.id})">删除</button>
       </div></td>
