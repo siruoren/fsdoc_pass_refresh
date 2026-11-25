@@ -138,19 +138,19 @@ def clear_api_password():
 
 # ---------- 条目 ----------
 
-def add_entry(url, doc_token, doc_type, title, cron=None, entry_id=None):
+def add_entry(url, doc_token, doc_type, cron=None, entry_id=None):
     with _lock, _connect() as conn:
         if entry_id is not None:
             cur = conn.execute(
-                """INSERT INTO entries (id, url, doc_token, doc_type, title, cron, status, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, '待刷新', ?)""",
-                (entry_id, url, doc_token, doc_type, title, cron, _now()),
+                """INSERT INTO entries (id, url, doc_token, doc_type, cron, status, created_at)
+                   VALUES (?, ?, ?, ?, ?, '待刷新', ?)""",
+                (entry_id, url, doc_token, doc_type, cron, _now()),
             )
         else:
             cur = conn.execute(
-                """INSERT INTO entries (url, doc_token, doc_type, title, cron, status, created_at)
-                   VALUES (?, ?, ?, ?, ?, '待刷新', ?)""",
-                (url, doc_token, doc_type, title, cron, _now()),
+                """INSERT INTO entries (url, doc_token, doc_type, cron, status, created_at)
+                   VALUES (?, ?, ?, ?, '待刷新', ?)""",
+                (url, doc_token, doc_type, cron, _now()),
             )
         return cur.lastrowid
 

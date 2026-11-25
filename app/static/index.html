@@ -82,7 +82,6 @@
          letter-spacing: 1px; background: var(--primary-soft); color: var(--primary-dark);
          padding: 3px 10px; border-radius: 7px; }
   .pwd-none { color: var(--err); font-weight: 500; }
-  .msg { color: var(--err); font-size: 12px; max-width: 220px; word-break: break-all; margin-top: 4px; }
   .muted { color: var(--muted); font-size: 12px; }
   .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-8px);
            background: rgba(28,35,51,.92); color: #fff; padding: 11px 20px; border-radius: 10px;
@@ -135,7 +134,6 @@
     td::before { content: attr(data-label); color: var(--muted); font-size: 12px;
                  font-weight: 500; flex: 0 0 auto; text-align: left; }
     td > div { flex: 1; justify-content: flex-end; }
-    .msg { max-width: none; }
     td .doc-link { max-width: 56vw; text-align: right; }
     .actions { justify-content: flex-end; }
   }
@@ -400,9 +398,9 @@ Authorization: Bearer ${pwd}</pre>
     message 优先显示条目「备注」中手动输入的内容，无备注时显示状态提示。未设置 API 认证密码时，可临时用访问密码认证；浏览器内已登录时也可直接用 Cookie 访问。</div>`;
 }
 
-const statusBadge = s => {
+const statusBadge = (s, msg) => {
   const map = {'正常':'ok','权限不足':'denied','刷新失败':'failed','未配置认证':'failed','待刷新':'pending'};
-  return `<span class="badge ${map[s]||'pending'}">${s}</span>`;
+  return `<span class="badge ${map[s]||'pending'}" ${msg ? `title="${msg}" style="cursor:help"` : ''}>${s}</span>`;
 };
 
 let entryCache = [];
@@ -475,7 +473,7 @@ async function loadEntries() {
       <td data-label="文档"><a class="doc-link" href="${e.url}" target="_blank" title="${e.doc_token}">...${(e.doc_token || '').slice(-6)}</a></td>
       <td data-label="类型">${e.doc_type}</td>
       <td data-label="当前密码">${passwordCell(e)}</td>
-      <td data-label="状态">${statusBadge(e.status)}${e.status !== '正常' && e.status_msg ? `<div class="msg">${e.status_msg}</div>` : ''}</td>
+      <td data-label="状态">${statusBadge(e.status, e.status_msg)}</td>
       <td data-label="备注">${messageCell(e)}</td>
       <td data-label="定时任务">${cronCell(e)}</td>
       <td data-label="最近刷新" class="muted">${e.last_refresh || '—'}</td>
