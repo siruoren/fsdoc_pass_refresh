@@ -20,9 +20,9 @@ def refresh_entry(entry_id: int) -> dict:
 
     auth = db.get_auth()
     if not auth:
-        db.save_refresh_result(entry_id, None, STATUS_NO_AUTH,
+        db.save_refresh_result(entry_id, entry["password"], STATUS_NO_AUTH,
                                "尚未配置应用认证信息，请先点击「认证」保存 App ID / App Secret")
-        return {"status": STATUS_NO_AUTH, "password": None,
+        return {"status": STATUS_NO_AUTH, "password": entry["password"],
                 "msg": "未配置认证信息"}
 
     try:
@@ -34,17 +34,17 @@ def refresh_entry(entry_id: int) -> dict:
         return {"status": STATUS_OK, "password": password, "msg": notice or ""}
     except FeishuError as e:
         if e.code == 1063002:
-            # 权限不足：不更新/不显示密码，保留旧密码字段由前端隐藏
-            db.save_refresh_result(entry_id, None, STATUS_DENIED,
+            # 权限不足：状态与消息落库，保留库中已有的密码（页面/API 异常状态下不展示）
+            db.save_refresh_result(entry_id, entry["password"], STATUS_DENIED,
                                    f"{e.msg}。{e.hint}")
-            return {"status": STATUS_DENIED, "password": None,
+            return {"status": STATUS_DENIED, "password": entry["password"],
                     "msg": f"{e.msg}。{e.hint}"}
-        db.save_refresh_result(entry_id, None, STATUS_FAILED, f"{e.msg} {e.hint}".strip())
-        return {"status": STATUS_FAILED, "password": None,
+        db.save_refresh_result(entry_id, entry["password"], STATUS_FAILED, f"{e.msg} {e.hint}".strip())
+        return {"status": STATUS_FAILED, "password": entry["password"],
                 "msg": f"{e.msg} {e.hint}".strip()}
     except Exception as e:  # 网络等异常
-        db.save_refresh_result(entry_id, None, STATUS_FAILED, str(e))
-        return {"status": STATUS_FAILED, "password": None, "msg": str(e)}
+        db.save_refresh_result(entry_id, entry["password"], STATUS_FAILED, str(e))
+        return {"status": STATUS_FAILED, "password": entry["password"], "msg": str(e)}
 
 
 def add_entry(url: str, cron: str = None, entry_id: int = None) -> dict:

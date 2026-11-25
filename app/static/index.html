@@ -496,8 +496,8 @@ let entryCache = [];
 let editEntryId = null;
 
 function passwordCell(e) {
-  if (e.status === '权限不足' || !e.password)
-    return `<span class="pwd-none">—— 权限不足</span>`;
+  if (e.status !== '正常' || !e.password)
+    return `<span class="pwd-none">—— 状态异常，密码隐藏</span>`;
   return `<span class="pwd" data-pwd="${e.password}">${e.password}</span>`;
 }
 

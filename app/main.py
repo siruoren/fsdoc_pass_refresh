@@ -325,7 +325,8 @@ def get_password(entry_id: int):
         "id": entry["id"],
         "url": entry["url"],
         "status": entry["status"],
-        "password": entry["password"],
+        # 状态异常时不返回密码（仅状态「正常」时提供最新密码）
+        "password": entry["password"] if entry["status"] == service.STATUS_OK else None,
         "message": entry["message"]
                    or ("权限不足" if entry["status"] == service.STATUS_DENIED else (entry["status_msg"] or "")),
         "last_refresh": entry["last_refresh"],
